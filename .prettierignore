@@ -1,0 +1,9 @@
+node_modules
+.next
+apps/web/.next
+.research
+pnpm-lock.yaml
+test-results
+playwright-report
+docs/devex
+apps/web/next-env.d.ts

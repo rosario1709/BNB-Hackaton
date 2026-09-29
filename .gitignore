@@ -1,0 +1,13 @@
+node_modules/
+.next/
+.env*
+!.env.example
+.research/
+coverage/
+test-results/
+playwright-report/
+*.tsbuildinfo
+.vercel/
+docs/devex/*.jsonl
+docs/devex/latency-summary.json
+

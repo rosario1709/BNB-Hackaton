@@ -1,0 +1,34 @@
+{
+  "code": 0,
+  "success": true,
+  "timestamp": 1790675000000,
+  "data": [
+    {
+      "quoteId": "fixture-quote",
+      "vendorName": "LiquidMesh",
+      "binanceChainId": "56",
+      "fromTokenAmount": "10000000000000000000",
+      "toTokenAmount": "55500000000000000",
+      "tradeFee": "0.02",
+      "priceImpactPercent": "-0.01",
+      "executionMode": "SWAP",
+      "approveTarget": null,
+      "fromToken": {
+        "tokenContractAddress": "0x1111111111111111111111111111111111111111",
+        "tokenSymbol": "USDT",
+        "tokenUnitPrice": "1",
+        "decimal": "18",
+        "isHoneyPot": false,
+        "taxRate": "0"
+      },
+      "toToken": {
+        "tokenContractAddress": "0x2222222222222222222222222222222222222222",
+        "tokenSymbol": "TESTon",
+        "tokenUnitPrice": "180",
+        "decimal": "18",
+        "isHoneyPot": false,
+        "taxRate": "0"
+      }
+    }
+  ]
+}

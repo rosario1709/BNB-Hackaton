@@ -1,0 +1,83 @@
+{
+  "retrievedAt": "2026-09-29T10:19:36.687Z",
+  "source": "Official Binance Wallet Skill",
+  "response": {
+    "mode": "live",
+    "rows": [
+      {
+        "representation": {
+          "ticker": "NVDA",
+          "companyName": "Nvidia Corp",
+          "provider": "ondo",
+          "chain": "bsc",
+          "tokenAddress": "0xa9ee28c80f960b889dfbd1902055218cba016f75",
+          "symbol": "NVDAon",
+          "decimals": 18,
+          "sharesPerToken": "1.0017152487959898",
+          "tradable": true,
+          "status": "premarket",
+          "sourceTimestamp": "2026-09-29T10:19:35.899Z",
+          "demo": false
+        },
+        "market": {
+          "tokenAddress": "0xa9ee28c80f960b889dfbd1902055218cba016f75",
+          "onchainPrice": "231.190870845870465891",
+          "derivedReferencePrice": "230.795",
+          "referencePrice": "231.033333",
+          "referenceSource": "Binance Wallet Skill stock feed (source timestamp unavailable)",
+          "marketStatus": "premarket",
+          "observedAt": "2026-09-29T10:19:36.178Z"
+        }
+      },
+      {
+        "representation": {
+          "ticker": "NVDA",
+          "companyName": "Nvidia Corp",
+          "provider": "xstocks",
+          "chain": "bsc",
+          "tokenAddress": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+          "symbol": "NVDAx",
+          "decimals": 18,
+          "sharesPerToken": "1.0009180758490996",
+          "tradable": true,
+          "status": "active",
+          "sourceTimestamp": "2026-09-29T10:19:35.906Z",
+          "demo": false
+        },
+        "market": {
+          "tokenAddress": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+          "onchainPrice": "230.288231582395505508959500764138197547",
+          "derivedReferencePrice": "230.077003442102106026082084068902752502424636912758560951386",
+          "referencePrice": "231.033333",
+          "referenceSource": "Binance Wallet Skill stock feed (source timestamp unavailable)",
+          "marketStatus": "active",
+          "observedAt": "2026-09-29T10:19:36.432Z"
+        }
+      },
+      {
+        "representation": {
+          "ticker": "NVDA",
+          "companyName": "Nvidia Corp",
+          "provider": "bstocks",
+          "chain": "bsc",
+          "tokenAddress": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+          "symbol": "NVDAB",
+          "decimals": 18,
+          "sharesPerToken": "1.000778223752807865",
+          "tradable": true,
+          "status": "active",
+          "sourceTimestamp": "2026-09-29T10:19:35.908Z",
+          "demo": false
+        },
+        "market": {
+          "tokenAddress": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+          "onchainPrice": "231.0396607355732237139",
+          "derivedReferencePrice": "230.86",
+          "referenceSource": "Binance Wallet Skill stock feed (source timestamp unavailable)",
+          "marketStatus": "active",
+          "observedAt": "2026-09-29T10:19:36.687Z"
+        }
+      }
+    ]
+  }
+}
