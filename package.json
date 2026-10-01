@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
-    "test:e2e": "playwright test",
+    "test:e2e": "pnpm build && playwright test",
     "db:migrate": "tsx --env-file-if-exists=.env.local scripts/migrate.ts",
     "agent": "tsx --env-file-if-exists=.env.local packages/agent/server.ts",
     "wallet": "tsx --env-file-if-exists=.env.local scripts/wallet.ts",
@@ -24,10 +24,11 @@
     "verify:wallet-api": "tsx --env-file-if-exists=.env.local scripts/verify-wallet-api.ts",
     "verify:reference": "tsx --env-file-if-exists=.env.local scripts/verify-reference.ts",
     "verify:production": "tsx --env-file-if-exists=.env.local scripts/verify-production.ts",
+    "verify:deployment": "tsx --env-file-if-exists=.env.local scripts/verify-deployment.ts",
     "verify:secrets": "tsx --env-file-if-exists=.env.local scripts/verify-secrets.ts",
     "inspect:router": "tsx --env-file-if-exists=.env.local scripts/inspect-router.ts",
-    "verify:db": "tsx --env-file-if-exists=.env.local scripts/verify-db.ts"
-    ,"verify:studio": "tsx --env-file-if-exists=.env.local scripts/verify-studio.ts"
+    "verify:db": "tsx --env-file-if-exists=.env.local scripts/verify-db.ts",
+    "verify:studio": "tsx --env-file-if-exists=.env.local scripts/verify-studio.ts"
   },
   "dependencies": {
     "decimal.js": "^10.6.0",

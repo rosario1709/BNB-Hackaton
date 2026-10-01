@@ -391,10 +391,10 @@ const tokenMeta = z
 export const routeSchema = z
   .object({
     quoteId:
-      z.string(),
+      z.string().min(1).max(200),
 
     vendorName:
-      z.string(),
+      z.string().min(1).max(80),
 
     binanceChainId:
       z.literal('56'),
@@ -427,6 +427,8 @@ export const routeSchema = z
 
     approveTarget:
       address.nullish(),
+    recipient: address.optional(),
+    userWalletAddress: address.optional(),
   })
   .passthrough();
 

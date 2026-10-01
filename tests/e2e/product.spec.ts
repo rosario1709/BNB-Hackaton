@@ -57,3 +57,17 @@ test('invalid input and disconnected wallet are actionable', async ({ page }) =>
   await page.goto('/portfolio');
   await expect(page.getByRole('heading', { name: 'Connect your wallet' })).toBeVisible();
 });
+test('quote-only policy rejection is distinct from simulation or execution refusal', async ({ page }) => {
+  await page.goto('/trade');
+  await page.getByLabel('Demo scenario').selectOption('stale-reference');
+  await page.getByRole('button', { name: 'Simulate routes', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Mode', exact: true }).selectOption('quote');
+  await page.getByRole('button', { name: 'Re-evaluate policy' }).click();
+  await expect(page.getByRole('heading', { name: 'Route comparison', exact: true })).toBeVisible();
+  await expect(page.getByText('QUOTES RECEIVED', { exact: true })).toBeVisible();
+  await expect(page.getByText('POLICY NOT VERIFIED', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Quote policy needs review.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Simulation Race', exact: true })).toHaveCount(0);
+  await expect(page.getByText('EXECUTION REFUSED', { exact: true })).toHaveCount(0);
+  await expect(page.locator('.route-checks').filter({ hasText: 'SIM NOT RUN' })).toHaveCount(3);
+});

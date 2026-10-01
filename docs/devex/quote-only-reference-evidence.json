@@ -1,0 +1,32 @@
+{
+  "http": 200,
+  "mode": "quote",
+  "dataMode": "live",
+  "decision": "blocked",
+  "quoteCount": 2,
+  "candidates": [
+    {
+      "symbol": "NVDAon",
+      "hasQuote": true,
+      "simulationRan": false,
+      "failedChecks": [
+        "REFERENCE",
+        "FRESHNESS",
+        "DEVIATION"
+      ]
+    },
+    {
+      "symbol": "NVDAB",
+      "hasQuote": true,
+      "simulationRan": false,
+      "failedChecks": [
+        "REFERENCE",
+        "FRESHNESS",
+        "DEVIATION"
+      ]
+    }
+  ],
+  "checkedAt": "2026-10-01T14:08:08.836Z",
+  "probe": "random public address, not user wallet",
+  "transactionsBroadcast": 0
+}

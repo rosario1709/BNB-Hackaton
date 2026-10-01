@@ -1,0 +1,11 @@
+{
+  "ticker": "NVDA",
+  "side": "buy",
+  "amount": "10",
+  "denomination": "USDT",
+  "maxSlippageBps": 50,
+  "maxReferenceDeviationBps": 100,
+  "maxReferenceAgeSeconds": 300,
+  "allowWhenReferenceStale": false,
+  "executionMode": "live"
+}

@@ -64,3 +64,10 @@ it('standalone agent refuses live execution', async () => {
   });
   expect(res.status).toBe(400);
 });
+it('standalone agent limits multibyte JSON by bytes', async () => {
+  const res = await fetch(`http://127.0.0.1:${port}/best-execution`, {
+    method: 'POST', headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ ticker: 'NVDA', amount: '10', padding: 'é'.repeat(6100) }),
+  });
+  expect(res.status).toBe(413);
+});

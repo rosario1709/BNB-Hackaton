@@ -1,0 +1,210 @@
+{
+  "checkedAt": "2026-10-01T14:09:16.086Z",
+  "environment": {
+    "node": "24.21.0",
+    "pnpm": "10.32.1",
+    "os": "Windows",
+    "chainId": 56
+  },
+  "source": "Actual commands and read-only probes run in this workspace on 2026-10-01",
+  "validation": [
+    {
+      "command": "pnpm typecheck",
+      "result": "PASS",
+      "exitCode": 0
+    },
+    {
+      "command": "pnpm lint",
+      "result": "PASS",
+      "exitCode": 0
+    },
+    {
+      "command": "pnpm test",
+      "result": "PASS",
+      "exitCode": 0,
+      "files": 13,
+      "tests": 134
+    },
+    {
+      "command": "pnpm build (invoked by pnpm test:e2e)",
+      "result": "PASS",
+      "exitCode": 0
+    },
+    {
+      "command": "pnpm test:e2e",
+      "result": "PASS",
+      "exitCode": 0,
+      "tests": 18,
+      "projects": [
+        "desktop",
+        "mobile"
+      ],
+      "historical": true
+    },
+    {
+      "command": "pnpm db:migrate",
+      "result": "PASS",
+      "exitCode": 0
+    },
+    {
+      "command": "pnpm verify:db",
+      "result": "PASS",
+      "exitCode": 0,
+      "checks": [
+        "migrations applied twice",
+        "receipt owner isolation",
+        "concurrent execution claim",
+        "duplicate/replay rejection",
+        "execution owner isolation",
+        "atomic transaction hash binding",
+        "cross-execution hash replay rejection",
+        "full schema health",
+        "approval owner isolation",
+        "persistent review hold",
+        "immutable snapshots"
+      ]
+    },
+    {
+      "command": "pnpm verify:deployment http://localhost:3101 --demo",
+      "result": "PASS",
+      "exitCode": 0,
+      "checks": 12,
+      "checkedAt": "2026-10-01T08:41:45.056Z",
+      "publicHostingVerified": false
+    },
+    {
+      "command": "pnpm verify:public",
+      "result": "PASS",
+      "exitCode": 0,
+      "evidence": "live-discovery-evidence.json"
+    },
+    {
+      "command": "pnpm verify:authenticated",
+      "result": "PASS",
+      "exitCode": 0,
+      "evidence": "authenticated-read-evidence.json"
+    },
+    {
+      "command": "pnpm verify:quote --simulate --approval",
+      "result": "READINESS BLOCKED",
+      "exitCode": 1,
+      "evidence": "authenticated-quote-evidence.json",
+      "quotes": "verified",
+      "unsignedBuild": "verified",
+      "exactApprovalCalldata": "matched",
+      "simulation": "failed with random unfunded probe"
+    },
+    {
+      "command": "pnpm inspect:router",
+      "result": "OPERATOR REVIEW REQUIRED",
+      "exitCode": 0,
+      "evidence": "router-inspection.json",
+      "allowlistChanged": false
+    },
+    {
+      "command": "pnpm verify:reference NVDA",
+      "result": "NOT READY",
+      "exitCode": 1,
+      "missing": [
+        "ALPACA_API_KEY_ID",
+        "ALPACA_API_SECRET_KEY"
+      ]
+    },
+    {
+      "command": "walletReadiness(random public address, 10, observed spender)",
+      "result": "NOT READY",
+      "evidence": "wallet-preflight-evidence.json",
+      "userWalletVerified": false
+    },
+    {
+      "command": "pnpm verify:production (Node system CA enabled)",
+      "result": "NOT READY",
+      "exitCode": 1,
+      "checkedAt": "2026-10-01T08:40:55.104Z",
+      "issues": [
+        "MISSING_ALPACA_API_KEY_ID",
+        "MISSING_ALPACA_API_SECRET_KEY",
+        "MISSING_NEXT_PUBLIC_APP_URL",
+        "EMPTY_ROUTER_ALLOWLIST",
+        "LIVE_TRADING_DISABLED"
+      ]
+    },
+    {
+      "command": "pnpm verify:studio",
+      "result": "READY FOR USER ACTION",
+      "exitCode": 1,
+      "missing": [
+        "ATLAS_REPORT_URL",
+        "ATLAS_AGENT_TOKEN"
+      ],
+      "deploymentVerified": false
+    },
+    {
+      "command": "pnpm wallet status",
+      "result": "NOT READY",
+      "exitCode": 1,
+      "missing": [
+        "ATLAS_BAW_EXECUTABLE"
+      ]
+    },
+    {
+      "command": "policySchema.parse(examples/nvda-10-usdt.json)",
+      "result": "PASS",
+      "exitCode": 0
+    },
+    {
+      "command": "pnpm verify:secrets",
+      "result": "PASS",
+      "exitCode": 0,
+      "filesScanned": 121,
+      "findings": [],
+      "scope": "Tracked/non-ignored files and built client assets; known configured secrets and private-key blocks."
+    },
+    {
+      "command": "pnpm verify:production --demo (Node system CA enabled)",
+      "result": "NOT READY",
+      "exitCode": 1,
+      "checkedAt": "2026-10-01T08:50:23.972Z",
+      "issues": [
+        "MISSING_NEXT_PUBLIC_APP_URL",
+        "DEMO_MODE_NOT_EXPLICITLY_SELECTED"
+      ]
+    },
+    {
+      "command": "Local documentation link check",
+      "result": "PASS",
+      "documents": 9,
+      "missing": []
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS",
+      "exitCode": 0
+    },
+    {
+      "command": "pnpm exec playwright test (after production build)",
+      "result": "PASS",
+      "exitCode": 0,
+      "tests": 20,
+      "projects": [
+        "desktop",
+        "mobile"
+      ],
+      "scope": "Includes quote-only policy failure labels"
+    },
+    {
+      "command": "POST /api/routes/evaluate, executionMode=quote, random public probe address",
+      "result": "QUOTES RECEIVED; POLICY BLOCKED",
+      "http": 200,
+      "quoteCount": 2,
+      "simulationRan": false,
+      "evidence": "quote-only-reference-evidence.json",
+      "checkedAt": "2026-10-01T14:08:08.836Z",
+      "transactionsBroadcast": 0
+    }
+  ],
+  "noVerifiedMainnetTradeRecorded": true,
+  "transactionsSigned": 0,
+  "transactionsBroadcast": 0,
+  "notice": "Unit and browser tests use explicit fictional inputs or test doubles. They do not prove a completed mainnet trade. Saved quotes are historical and expired."
+}

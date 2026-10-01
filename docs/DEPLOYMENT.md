@@ -11,7 +11,22 @@
 7. Configure provider rate limits at the hosting ingress. Server-local limits and caches are bounded but not shared between instances.
 8. Check `/api/health`, all eight routes, and `/system` on the deployed host. Export real observations after testing.
 
-No Vercel account, project, token, or Git remote was supplied to this workspace. No public deployment has been performed.
+The Git remote is configured as `https://github.com/rosario1709/BNB-Hackaton.git`. Vercel login, a project and a managed production database remain external actions; no public deployment has been verified.
+
+The root and app packages both pin Node 24.x. `apps/web/vercel.json` specifies the framework, frozen pnpm install and workspace build. Validate before publishing:
+
+```sh
+# Judge deployment: requires an HTTPS origin and persistent PostgreSQL, with demo=true and live=false.
+pnpm verify:production --demo
+# Live deployment: additionally requires credentials, independent reference and reviewed contracts.
+pnpm verify:production
+# After deployment; replace the URL with your actual deployment.
+pnpm verify:deployment https://YOUR-DEPLOYMENT-HOST
+# Explicitly verify the judge's fictional receipt flow even if live data is configured.
+pnpm verify:deployment https://YOUR-DEPLOYMENT-HOST --demo
+```
+
+`verify:deployment` checks eight pages, response headers, health and schema availability. In demo mode, or with `--demo`, it also stores an explicitly fictional receipt and verifies browser-session isolation. The judge deployment must keep live trading disabled. It never requests a wallet signature. It accepts HTTP only for loopback testing. A locally tested production build is evidence of build/runtime compatibility; it is not a verified Vercel deployment.
 
 ## PostgreSQL
 
@@ -23,7 +38,7 @@ For local development, `compose.yaml` provides PostgreSQL 16 on `127.0.0.1:55432
 pnpm db:migrate
 ```
 
-The migration is transactional and idempotent. It creates intents, cached representations, route evaluations, immutable receipt snapshots, execution claims, and telemetry. Do not expose the connection URL to the browser. Keep backups and establish retention appropriate to your deployment. The migration and database adapter were validated against a disposable PostgreSQL 16 container on 2026-09-30, including receipt owner isolation and duplicate execution-claim rejection. A managed production database remains unconfigured.
+The migration is transactional and idempotent. It creates intents, cached representations, route evaluations, immutable receipt snapshots, execution claims, approvals, execution review holds and telemetry. Migration `0003_execution_hash.sql` adds atomic transaction-hash binding and a unique index preventing hash reuse across executions. Do not expose the connection URL to the browser. Apply all migrations before starting a deployment; health checks validate all these tables. On 2026-10-01, a disposable PostgreSQL 16 database passed repeated migrations, owner isolation, concurrent claim/hash binding, replay rejection and immutable snapshots. A managed production database remains unconfigured.
 
 Without PostgreSQL, the app uses temporary memory scoped by browser cookies; serverless instances do not share that state. Use PostgreSQL for a stable public judge session and for all live execution.
 

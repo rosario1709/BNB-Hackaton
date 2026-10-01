@@ -36,14 +36,18 @@ const server = createServer(async (req, res) => {
   }
   active++;
   try {
-    let body = '';
+    const chunks: Buffer[] = [];
+    let size = 0;
     for await (const chunk of req) {
-      body += chunk.toString();
-      if (body.length > 12000) {
+      const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      size += bytes.byteLength;
+      if (size > 12000) {
         reply(413, { error: 'Request too large' });
         return;
       }
+      chunks.push(bytes);
     }
+    const body = Buffer.concat(chunks).toString('utf8');
     const parsed = agentReportRequest.parse(JSON.parse(body));
     if (parsed.policy.executionMode === 'live') {
       reply(400, { error: 'Intelligence reports cannot broadcast. Use quote or simulate.' });

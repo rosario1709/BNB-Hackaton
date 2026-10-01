@@ -2,6 +2,8 @@
 
 Before presenting: open `/judge`, `/markets`, `/receipts` and `/system`. Use `ATLAS_DEMO_MODE=true`, `ATLAS_LIVE_TRADING_ENABLED=false` for a reproducible presentation without spending. Public discovery remains available separately. If demonstrating live data, label it and use the actual results; never substitute fictional candidates after an API failure. Do not try to complete two wallet transactions inside a timed pitch.
 
+On `/judge`, **Fictional demo** explicitly selects the four fictional scenarios even when the server has Binance credentials. **Configured data** uses actual adapters. The fictional multipliers are deliberately different: Ondo 2, bStocks 1, xStocks 0.5 shares/token. The winner receives fewer tokens than the valid alternative but greater normalized net stock exposure. These multipliers describe the demo, not actual issuers.
+
 | Time | Action and words to say |
 | --- | --- |
 | 0:00–0:20 | Show the ATLAS hero. **“NVDA is not necessarily one token on-chain. Multiple issuers can represent the same underlying stock using different token units and execution routes.”** |

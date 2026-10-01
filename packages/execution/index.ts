@@ -100,13 +100,14 @@ export async function verifyTransaction(
 ): Promise<Receipt> {
   if ((await client.getChainId()) !== 56) throw new Error('RPC is not BSC mainnet.');
   const tx = await client.getTransaction({ hash });
-  if (
-    tx.from.toLowerCase() !== expected.from.toLowerCase() ||
-    tx.to?.toLowerCase() !== expected.to.toLowerCase() ||
-    tx.input.toLowerCase() !== expected.data.toLowerCase() ||
-    tx.value !== BigInt(expected.value)
-  )
-    throw new Error('Transaction does not match the prepared execution.');
+  const mismatches = [
+    tx.from.toLowerCase() !== expected.from.toLowerCase() ? 'TRANSACTION_SENDER_MISMATCH' : undefined,
+    tx.to?.toLowerCase() !== expected.to.toLowerCase() ? 'TRANSACTION_TARGET_MISMATCH' : undefined,
+    tx.input.toLowerCase() !== expected.data.toLowerCase() ? 'TRANSACTION_CALLDATA_MISMATCH' : undefined,
+    tx.value !== BigInt(expected.value) ? 'TRANSACTION_VALUE_MISMATCH' : undefined,
+  ].filter((reason): reason is string => !!reason);
+  const transactionMatches = mismatches.length === 0;
+  if (!transactionMatches) await holdExecution(expected.from, 'TRANSACTION_MISMATCH', hash);
   let mined;
   try {
     mined = await client.getTransactionReceipt({ hash });
@@ -118,11 +119,12 @@ export async function verifyTransaction(
       id: crypto.randomUUID(),
       status: 'pending',
       executed: false,
-      verification: 'pending',
+      verification: transactionMatches ? 'pending' : 'mismatch',
       transactionHash: hash,
       executionTransaction: expected,
       blockExplorerUrl: `https://bscscan.com/tx/${hash}`,
-      reason: 'Submitted transaction found on BSC; confirmation is pending.',
+      reason: transactionMatches ? 'Submitted transaction found on BSC; confirmation is pending.'
+        : `Transaction does not match the prepared execution: ${mismatches.join(', ')}. Confirmation pending; operator review required.`,
       createdAt: new Date().toISOString(),
     };
   }
@@ -156,7 +158,9 @@ export async function verifyTransaction(
   const policyMinimum = (BigInt(q.amountOutRaw) * BigInt(10000 - q.slippageBps)) / 10000n;
   const builtMinimum = BigInt(q.minReceiveAmountRaw ?? '0');
   const minimum = builtMinimum > policyMinimum ? builtMinimum : policyMinimum;
-  const matches = confirmed && spent === BigInt(q.amountInRaw) && received >= minimum;
+  if (spent !== BigInt(q.amountInRaw)) mismatches.push('INPUT_DEBIT_MISMATCH');
+  if (received < minimum) mismatches.push('OUTPUT_BELOW_MINIMUM');
+  const matches = confirmed && transactionMatches && mismatches.length === 0;
   const actualAmountOut = new Decimal(received.toString())
     .div(new Decimal(10).pow(q.outputDecimals))
     .toFixed();
@@ -170,13 +174,13 @@ export async function verifyTransaction(
     actualAmountOut,
     transactionHash: hash,
     executionTransaction: expected,
-    chainEvidence: { chainId: 56, blockNumber: mined.blockNumber.toString(), blockHash: mined.blockHash,
+    chainEvidence: { chainId: 56, blockNumber: mined.blockNumber.toString(), blockHash: mined.blockHash, transactionMatches, mismatches,
       inputDebitRaw: spent.toString(), outputCreditRaw: received.toString(), minimumOutputRaw: minimum.toString(), transfers },
     blockExplorerUrl: `https://bscscan.com/tx/${hash}`,
     reason: confirmed
       ? matches
         ? `Confirmed on BSC. Verified net receipt of ${actualAmountOut} output tokens and exact input debit from Transfer logs.`
-        : `Transaction succeeded on BSC, but token flows did not match the approved quote. Review required. Net output: ${actualAmountOut}.`
+        : `Transaction succeeded on BSC, but verification failed: ${mismatches.join(', ')}. Review required. Net output: ${actualAmountOut}.`
       : 'Transaction reverted on BSC. Gas may have been spent.',
     createdAt: new Date().toISOString(),
     timeline: [

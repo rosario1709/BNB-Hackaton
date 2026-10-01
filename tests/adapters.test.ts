@@ -6,7 +6,50 @@ import fixture from './fixtures/official-shape/quote.json';
 import { LiveAdapter, normalizeMarketStatus, simulationMatches } from '../packages/market/live';
 import { DemoAdapter } from '../packages/market/demo';
 import { policySchema } from '../packages/core/domain';
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
+
+it('simulates and returns the identical EVM transaction without provider metadata', async () => {
+  const wallet = '0x3333333333333333333333333333333333333333';
+  const route = fixture.data[0];
+  vi.stubEnv('ATLAS_USDT_ADDRESS', route.fromToken.tokenContractAddress);
+  vi.stubEnv('ATLAS_USDT_DECIMALS', '18');
+  const exact = { from: wallet, to: '0x4444444444444444444444444444444444444444', value: '0', data: '0x1234' };
+  const transport = vi.fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify(fixture)))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ code: 0, data: {
+      executionMode: 'SWAP', routerResult: route,
+      tx: { ...exact, minReceiveAmount: '55222500000000000', slippagePercent: '0.5', gas: '100000' },
+    } })))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ code: 0, data: {
+      status: 'SUCCESS', balanceChanges: [
+        { owner: wallet, contractAddress: route.fromToken.tokenContractAddress, change: '-' + route.fromTokenAmount },
+        { owner: wallet, contractAddress: route.toToken.tokenContractAddress, change: route.toTokenAmount },
+      ], allowanceChanges: [],
+    } })));
+  const adapter = new LiveAdapter(new BinanceClient({ key: 'key', secret: 'secret' }, transport));
+  const representation = (await new DemoAdapter().discover('NVDA'))[0];
+  representation.tokenAddress = route.toToken.tokenContractAddress;
+  const policy = policySchema.parse({ ticker: 'NVDA', amount: '10' });
+  const quote = (await adapter.quotes(policy, representation, wallet))[0];
+  const simulation = await adapter.simulate(policy, representation, quote, wallet);
+  expect(simulation).toMatchObject({ success: true, transaction: exact });
+  expect(Object.keys(simulation.transaction!).sort()).toEqual(['data', 'from', 'to', 'value']);
+  expect(JSON.parse(transport.mock.calls[2][1].body).evmTx).toEqual(simulation.transaction);
+});
+
+it('rejects conflicting recipient echoes independently of a matching user wallet', async () => {
+  const wallet = '0x3333333333333333333333333333333333333333';
+  const route = fixture.data[0];
+  vi.stubEnv('ATLAS_USDT_ADDRESS', route.fromToken.tokenContractAddress);
+  vi.stubEnv('ATLAS_USDT_DECIMALS', '18');
+  const adapter = new LiveAdapter(new BinanceClient({ key: 'key', secret: 'secret' }, vi.fn().mockResolvedValue(
+    new Response(JSON.stringify({ code: 0, data: [{ ...route, userWalletAddress: wallet, recipient: route.fromToken.tokenContractAddress }, route] })),
+  )));
+  const representation = (await new DemoAdapter().discover('NVDA'))[0];
+  representation.tokenAddress = route.toToken.tokenContractAddress;
+  expect(await adapter.quotes(policySchema.parse({ ticker: 'NVDA', amount: '10' }), representation, wallet)).toHaveLength(1);
+  expect(adapter.quoteFailures(representation)[0].reason).toContain('recipient');
+});
 describe('Official adapters', () => {
   it('isolates malformed vendor schemas and retains a rejection reason', () => {
     const result = quoteBatchSchema.parse([{ vendorName: 'Broken vendor', toTokenAmount: 'nonsense' }, fixture.data[0]]);

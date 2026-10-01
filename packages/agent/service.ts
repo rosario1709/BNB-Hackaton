@@ -11,6 +11,7 @@ export const evaluationRequest = z.object({
   policy: policySchema,
   wallet: address.optional(),
   scenario: scenarioSchema.default('successful-best-execution'),
+  demo: z.boolean().default(false),
   userText: z.string().max(2000).optional(),
   approvalId: z.uuid().optional(),
 });
@@ -31,10 +32,11 @@ export function adapter(
 }
 export async function evaluate(input: unknown, owner: string, existingIntent?: TradeIntent): Promise<Receipt> {
   const req = evaluationRequest.parse(input);
+  if (req.demo && req.policy.executionMode === 'live') throw new Error('Fictional demo scenarios cannot use live execution mode.');
   const id = existingIntent?.id ?? crypto.randomUUID();
   const report = await evaluateRoutes(
     { ...req.policy, id, createdAt: existingIntent?.createdAt ?? new Date().toISOString(), userText: req.userText ?? existingIntent?.userText },
-    adapter(req.scenario, id),
+    req.demo ? new DemoAdapter(req.scenario) : adapter(req.scenario, id),
     req.wallet,
   );
   if (req.approvalId) {

@@ -63,6 +63,10 @@ An optional built-in adapter uses [Alpaca's latest single-stock trade API](https
 
 ## RFQ and approvals
 
+On 2026-10-01, the official [Trading API](https://web3.binance.com/en/dev-docs/catalog/web3-wallet/api/rest-api/trading-api#get-aggregated-quote) was checked again: `tradeFee` is the estimated network cost in USD, not a separate exchange commission. ATLAS maps it to `gasUsd` and subtracts it once. Token output is the vendor's expected receipt. Quote IDs have an approximately 30-second TTL; ATLAS uses a conservative 25-second window from request start and rejects quotes older than 30 seconds. These locally recorded quote times are observations, not independent equity-source timestamps.
+
+Fresh public discovery and authenticated RWA/Market/Trading reads were recorded on 2026-10-01. Exact approval calldata matched 10 USDT; the unfunded simulation failed and the probe reported `READINESS BLOCKED`. The current timestamped files in `docs/devex/` replace earlier point-in-time snapshots. They do not establish funded execution readiness.
+
 The current official Trading introduction distinguishes mixed SWAP/RFQ bStocks routes, RFQ Ondo routes, and AMM xStocks routes. Some per-endpoint text still says all equities use RFQ; ATLAS uses the returned `executionMode` rather than inferring it from issuer.
 
 RFQ typed-data signatures are not EVM transaction simulations. This version preserves RFQ quote evidence and explains why simulation/execution is unavailable. It never signs an unverified settlement. For SWAP, ATLAS can prepare an exact-input ERC-20 approval after a fresh quote passes every non-simulation policy check. It compares Binance's approval calldata with a locally encoded `approve(spender, amount)`, requires an operator-approved spender with code on BSC, checks balance and gas, and asks the browser wallet to confirm separately. Once mined, a new quote and simulation are required before the SWAP. No allowance is granted automatically; RFQ settlement remains unsupported.

@@ -1,37 +1,13 @@
 {
-  "checkedAt": "2026-10-01T02:23:08.232Z",
+  "checkedAt": "2026-10-01T08:26:16.818Z",
   "source": "BSC JSON-RPC plus saved Binance signed quote evidence (compare timestamps)",
   "quoteEvidence": {
-    "checkedAt": "2026-10-01T02:22:24.348Z",
+    "status": "READINESS BLOCKED",
+    "checkedAt": "2026-10-01T08:25:18.303Z",
     "ticker": "NVDA",
     "amount": "10",
     "probeWallet": "random-unfunded",
     "routes": [
-      {
-        "symbol": "NVDAB",
-        "provider": "bstocks",
-        "result": "verified",
-        "rejectedVendors": [],
-        "quoteCount": 1,
-        "vendors": [
-          {
-            "vendor": "LiquidMesh",
-            "executionMode": "SWAP",
-            "quoteId": "d9f2dc95482545b8b5a0263e62649932",
-            "tokenIn": "0x55d398326f99059fF775485246999027B3197955",
-            "tokenOut": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
-            "amountInRaw": "10000000000000000000",
-            "amountOutRaw": "43447253483899554",
-            "inputDecimals": 18,
-            "outputDecimals": 18,
-            "quotedAt": "2026-10-01T02:22:22.439Z",
-            "expiresAt": "2026-10-01T02:22:47.439Z",
-            "minReceiveAmountRaw": "43230017216480056",
-            "tradeFeeUsd": "0.01991991",
-            "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
-          }
-        ]
-      },
       {
         "symbol": "NVDAon",
         "provider": "ondo",
@@ -42,24 +18,49 @@
           {
             "vendor": "LiquidMesh",
             "executionMode": "SWAP",
-            "quoteId": "a065da276cac405a8e895919995ad6a0",
+            "quoteId": "785ec2f3384e4b568bddaf229361574c",
             "tokenIn": "0x55d398326f99059fF775485246999027B3197955",
             "tokenOut": "0xa9ee28c80f960b889dfbd1902055218cba016f75",
             "amountInRaw": "10000000000000000000",
-            "amountOutRaw": "43440073769296048",
+            "amountOutRaw": "43434483995328874",
             "inputDecimals": 18,
             "outputDecimals": 18,
-            "quotedAt": "2026-10-01T02:22:22.439Z",
-            "expiresAt": "2026-10-01T02:22:47.439Z",
-            "minReceiveAmountRaw": "43222873400449567",
-            "tradeFeeUsd": "0.02019375",
+            "quotedAt": "2026-10-01T08:25:16.416Z",
+            "expiresAt": "2026-10-01T08:25:41.416Z",
+            "minReceiveAmountRaw": "43217311575352229",
+            "tradeFeeUsd": "0.03940595",
+            "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+          }
+        ]
+      },
+      {
+        "symbol": "NVDAB",
+        "provider": "bstocks",
+        "result": "verified",
+        "rejectedVendors": [],
+        "quoteCount": 1,
+        "vendors": [
+          {
+            "vendor": "LiquidMesh",
+            "executionMode": "SWAP",
+            "quoteId": "836af97b673a4c1ab3eb2e184397e671",
+            "tokenIn": "0x55d398326f99059fF775485246999027B3197955",
+            "tokenOut": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+            "amountInRaw": "10000000000000000000",
+            "amountOutRaw": "43422241708699613",
+            "inputDecimals": 18,
+            "outputDecimals": 18,
+            "quotedAt": "2026-10-01T08:25:16.417Z",
+            "expiresAt": "2026-10-01T08:25:41.417Z",
+            "minReceiveAmountRaw": "43205130500156114",
+            "tradeFeeUsd": "0.03514805",
             "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
           }
         ]
       }
     ],
     "simulationProbe": {
-      "symbol": "NVDAB",
+      "symbol": "NVDAon",
       "result": "failed",
       "kind": "binance",
       "router": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
@@ -78,7 +79,7 @@
     {
       "address": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
       "chainId": 56,
-      "blockNumber": "125019827",
+      "blockNumber": "125068234",
       "hasBytecode": true,
       "bytecodeHash": "0xb6f35276cf3608595df59a3cfa5fb06a3309e64e387b0ea4f60875fdc4c696a0",
       "proxyDetection": "No recognized marker; custom proxies are not excluded",

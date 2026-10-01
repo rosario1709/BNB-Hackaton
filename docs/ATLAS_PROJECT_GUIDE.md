@@ -1,6 +1,6 @@
 # ATLAS: guía integral del proyecto
 
-**Versión del repositorio:** `0.1.0` · **Corte de esta guía:** 30 de septiembre de 2026 · **Red:** BNB Smart Chain mainnet, `chainId=56`.
+**Versión del repositorio:** `0.1.0` · **Corte de esta guía:** 1 de octubre de 2026 · **Red:** BNB Smart Chain mainnet, `chainId=56`.
 
 Este archivo reúne el objetivo, el comportamiento implementado, la arquitectura, los flujos, las integraciones, la operación, las pruebas y los pendientes de ATLAS. Describe el código del repositorio en la fecha indicada. Los precios, saldos, cotizaciones, estados de mercado y disponibilidad de servicios cambian: cada operación debe obtener evidencia nueva. Los datos ficticios de demostración nunca equivalen a una transacción real.
 
@@ -48,7 +48,7 @@ El problema central es que **un token no siempre equivale a una acción**. Cada 
 
 **Objetivo acordado:** primera prueba de **compra de NVDA por 10 USDT en BSC mainnet**, usando **Alpaca IEX** como fuente bursátil independiente. Se proporcionó una dirección pública de wallet para las verificaciones, pero esta guía no la guarda: las verificaciones locales aceptan la dirección como argumento. Nunca se necesitan frases semilla ni claves privadas en este repositorio.
 
-| Componente                            | Estado verificado hasta el 30-09-2026                                                                         | Lo que demuestra                                                 |
+| Componente                            | Estado verificado hasta el 01-10-2026                                                                         | Lo que demuestra                                                 |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | Binance Wallet Skill público          | Funcionó para NVDA; encontró Ondo, xStocks y bStocks.                                                         | Descubrimiento y datos públicos, sin ejecución.                  |
 | API Binance RWA y Market autenticadas | Lecturas de NVDAon y NVDAB con claves locales.                                                                | Firma y parsing de lectura reales.                               |
@@ -127,13 +127,13 @@ Es un monorepo pnpm 10.32.1/TypeScript 5.9.2. El paquete web usa Next.js 16.3.6 
 
 `Policy.amount` es una **cadena decimal**, no un `number`. Una compra siempre denomina el importe en **USDT**; una venta, en **TOKEN** y debe apuntar al contrato que se posee. `toRaw` multiplica por `10^decimals` y rechaza una precisión imposible; `fromRaw` invierte esa conversión. Los puntos básicos (`bps`) equivalen a centésimas de punto porcentual: 50 bps = 0,5 % y 100 bps = 1 %. Los cálculos monetarios usan precisión decimal de 60 dígitos; montos raw y saldos usan `bigint`.
 
-Para **compra**, `grossShares = expectedAmountOut × sharesPerToken`; el precio de ejecución por acción se obtiene de importe y valor USD de entrada dividido por acciones brutas. `netOutput = grossShares − gasUsd / referencePrice`. Para **venta**, el precio de ejecución relaciona la salida en USDT con las acciones del token vendido; `netOutput = expectedAmountOut − gasUsd / outputPriceUsd`. Solo candidatos con salida neta positiva y todos los checks obligatorios aprobados entran al ranking. Gana la mayor salida neta. El costo usado proviene del campo `tradeFee` de la cotización mapeado a `gasUsd`; antes de producción conviene validar con el proveedor qué componentes cubre exactamente.
+Para **compra**, `grossShares = expectedAmountOut × sharesPerToken`; el precio de ejecución por acción se obtiene de importe y valor USD de entrada dividido por acciones brutas. `netOutput = grossShares − gasUsd / referencePrice`. Para **venta**, el precio de ejecución relaciona la salida en USDT con las acciones del token vendido; `netOutput = expectedAmountOut − gasUsd / outputPriceUsd`. Solo candidatos con salida neta positiva y todos los checks obligatorios aprobados entran al ranking. Gana la mayor salida neta. La documentación oficial de Binance define `tradeFee` como costo de red estimado en USD; se mapea a `gasUsd` y se descuenta una sola vez. No se presenta como desglose completo de todas las comisiones del emisor o del venue.
 
 ### Modos de datos y ejecución
 
 | Modo       | Selección y alcance                                                                                                                                                                                                        |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Demo       | `ATLAS_DEMO_MODE=true`, o `auto` si no están ambas credenciales Binance. Datos ficticios para NVDA, AAPL y TSLA; contratos `DEMO:*` imposibles de enviar como direcciones EVM.                                             |
+| Demo       | `ATLAS_DEMO_MODE=true`, `auto` sin ambas credenciales, o selección explícita **Fictional demo** en `/judge`. Datos ficticios, multiplicadores distintos y contratos `DEMO:*`; se rechaza `executionMode=live`. |
 | Público    | `ATLAS_DEMO_MODE=false` sin ambas credenciales. Descubrimiento Wallet Skill real; las cotizaciones autenticadas faltan y no hay ejecución. En `/markets` puede forzarse `source=public` incluso si el modo normal es otro. |
 | Live data  | `ATLAS_DEMO_MODE=false` con ambas credenciales. Datos y quotes oficiales; `LIVE DATA` no significa que esté habilitado el broadcast.                                                                                       |
 | `quote`    | Valida mercado, referencia y quote; omite simulación. Produce estado `quoted` si hay ruta válida.                                                                                                                          |
@@ -182,7 +182,7 @@ La frase reconocida sigue el patrón `Buy $10 of NVIDIA. Maximum slippage 0.5%. 
 | `REFERENCE`             | Precio USD positivo por acción de fuente independiente. El precio derivado del token no lo satisface.                                                       |
 | `FRESHNESS`             | Hora fuente de referencia presente y no más de 5 segundos en el futuro; edad dentro del límite salvo opt-in explícito.                                      |
 | `DEVIATION`             | Máximo entre desviación spot y desviación de ejecución, ambos por acción, dentro de `maxReferenceDeviationBps`. Se redondea conservadoramente hacia arriba. |
-| `QUOTE` / `QUOTE_FRESH` | Salida positiva y cotización aún no expirada ni fechada más de 5 segundos en el futuro.                                                                     |
+| `QUOTE` / `QUOTE_FRESH` | Salida positiva, edad entre −5 y 30 segundos y caducidad vigente; el adaptador Binance usa una ventana conservadora de 25 segundos. |
 | `SLIPPAGE` / `IMPACT`   | Slippage configurado e impacto cotizado no exceden el límite. Impacto desconocido bloquea.                                                                  |
 | `COST`                  | Costo USD conocido y no negativo para calcular salida neta.                                                                                                 |
 | `HOLDING`               | En venta, el contrato de la ruta coincide con `sellTokenAddress`; no se canjean holdings de emisores distintos por equivalencia aparente.                   |
@@ -197,7 +197,7 @@ Además de los checks de ruta, el **gate de mainnet** exige flag live, confirmac
 
 Si todos los checks salvo `SIMULATION` pasan y existe un `approveTarget` de SWAP, la UI puede solicitar `POST /api/approval/prepare`. Eso no demuestra que la allowance sea la causa del fallo: el servidor vuelve a comprobarla. Realiza una **nueva evaluación en modo `quote`**, verifica todos los checks que no requieren simulación, el cap, contrato/decimales, BSC `56`, saldo de entrada, BNB, allowance actual, bytecode del spender y su inclusión en `ATLAS_ALLOWED_ROUTERS`. Pide a Binance el calldata firmado de `approve-transaction` y lo compara contra la codificación local `approve(spender, amountInRaw)`; exige una sola ruta SWAP y aprobación **exacta** del monto de entrada. Calcula gas estimado con 20 % de margen.
 
-Si la allowance ya alcanza, responde `already-approved`. Si falta, devuelve una transacción ERC-20 **sin firmar** con monto, spender y token visibles. La UI requiere una casilla de autorización separada, comprueba wallet y red `0x38`, y deja la firma a la wallet. Después del minado consulta el recibo de aprobación y obliga a obtener **quote y simulación nuevos**. Un approval confirmado no garantiza que el SWAP siguiente vaya a pasar o conservar el mismo precio. La UI guarda temporalmente el hash de aprobación en `sessionStorage`; todavía no existe un registro duradero especializado para ese paso.
+Si la allowance ya alcanza, responde `already-approved`. Si falta, devuelve una transacción ERC-20 **sin firmar** con monto, spender y token visibles. La UI requiere una casilla de autorización separada, comprueba wallet y red `0x38`, y deja la firma a la wallet. Después del minado verifica sender, destino, calldata y allowance on-chain y obliga a obtener **quote y simulación nuevos**. Un approval confirmado no garantiza que el SWAP siguiente vaya a pasar o conservar el mismo precio. PostgreSQL conserva preparación, hash y estado en `token_approvals`; `sessionStorage` permite retomar la consulta en la pestaña.
 
 ### Envío del SWAP
 
@@ -262,7 +262,7 @@ El cliente autenticado llama a `https://web3.binance.com/build`. La firma es **H
 | Wallet               | `/api/v1/dex/balance/all-token-balances-by-address`              | Cartera por dirección, cadena 56, primera página.                                         |
 | Wallet Skill público | `www.binance.com/bapi/defi/.../rwa/...`                          | Lista, metadata, estado y datos dinámicos sin key; no reemplaza Trading.                  |
 
-El listado público se cachea durante 60 segundos por proceso y limita la consulta a 30 representaciones; agrupa solicitudes de tres. Una respuesta pública puede ofrecer precio `stockInfo` sin timestamp fuente. Se muestra como dato de mercado, pero no satisface la verificación de frescura ni prueba por sí sola independencia bursátil. El adaptador público hereda los métodos de quote autenticados, de modo que sin claves una evaluación real no podrá cotizar. La página Markets muestra ese `stockInfo` bajo el rótulo “Independent reference”; **ese rótulo debe corregirse** en una mejora futura porque aún falta la hora fuente y la independencia comprobable.
+El listado público se cachea durante 60 segundos por proceso y limita la consulta a 30 representaciones; agrupa solicitudes de tres. Una respuesta pública puede ofrecer precio `stockInfo` sin timestamp fuente. Se muestra como indicación pública con hora no verificada; la referencia independiente queda marcada como no disponible. No satisface la verificación de frescura ni prueba independencia bursátil. El adaptador público hereda los métodos de quote autenticados, de modo que sin claves una evaluación real no podrá cotizar.
 
 ### Referencia independiente
 
@@ -289,12 +289,14 @@ Con `DATABASE_URL`, Drizzle usa PostgreSQL con pool máximo de cinco conexiones 
 | `representations`    | Último snapshot por contrato de token.                             |
 | `route_evaluations`  | Candidatos y checks asociados a intención.                         |
 | `execution_receipts` | Snapshots de recibo, con índice por owner y fecha.                 |
-| `executions`         | Claim único de transacción preparada, owner, recibo y vencimiento. |
+| `executions`         | Claim único de transacción preparada, owner, recibo, vencimiento y hash de transacción vinculado una sola vez. |
+| `token_approvals`    | Preparación, hash, estado y evidencia de approvals ERC-20 exactos. |
+| `execution_holds`   | Bloqueos de revisión por wallet ante revert o mismatch de transacción/flujos. |
 | `api_telemetry`      | Observaciones sanitizadas capturadas al guardar recibos.           |
 
 El acceso HTTP a recibos y claims filtra por cookie `owner`; el servicio standalone utiliza owner `agent`, mientras el CLI usa `baw:<dirección>`. Sin `DATABASE_URL`, un `Map` global limitado a 500 recibos sirve desarrollo/demo y se pierde al reiniciar; **no se permite ejecución live sin PostgreSQL**. El listado de base devuelve como máximo 100 recibos recientes. Los snapshots de un mismo proceso son observables, pero no constituyen una cadena criptográfica de auditoría; la inmutabilidad aquí significa que cada estado se inserta con ID nuevo.
 
-Las observaciones runtime guardan `module`, `operation`, hora, duración, HTTP, éxito, intento, error sanitizado y correlación. El buffer global conserva hasta 1 000 eventos y `/system` muestra los últimos 30. `pnpm devex:export` extrae lo que conoce el proceso web en ejecución hacia `docs/devex/`; no es archivo histórico completo ni una encuesta humana. Los fixtures demo y mocks de tests no cuentan como éxitos externos. [DEVELOPER_EXPERIENCE_NOTES.md](DEVELOPER_EXPERIENCE_NOTES.md) permanece como plantilla de observaciones humanas sin opiniones inventadas.
+Las observaciones runtime guardan `module`, `operation`, hora, duración, HTTP, éxito, intento, error sanitizado y correlación. El buffer global conserva hasta 1 000 eventos y `/system` muestra los últimos 30. `pnpm devex:export` extrae lo que conoce el proceso web en ejecución hacia `docs/devex/`; no es archivo histórico completo ni una encuesta humana. Los fixtures demo y mocks de tests no cuentan como éxitos externos. [DEVELOPER_EXPERIENCE_NOTES.md](DEVELOPER_EXPERIENCE_NOTES.md) registra observaciones medidas, efectos, soluciones y mejoras propuestas, con enlaces a evidencia y sin opiniones humanas inventadas.
 
 ## 11. Configuración y puesta en marcha
 
@@ -320,7 +322,6 @@ La plantilla completa es [`.env.example`](../.env.example). Copiar a `.env.local
 | `ATLAS_AGENT_TOKEN`, `ATLAS_AGENT_PORT`           | Bearer aleatorio de al menos 32 caracteres y puerto local `8080`.                                                  |
 | `ATLAS_REPORT_URL`                                | URL HTTPS del informe para el hook de Studio.                                                                      |
 | `ATLAS_BAW_EXECUTABLE`                            | Ruta local absoluta del CLI oficial Agentic Wallet.                                                                |
-| `BNB_AGENT_STUDIO_ENABLED`                        | Flag declarativo `false` en plantilla; el hook no equivale a despliegue.                                           |
 
 **Arranque local:** instalar Node.js 24 y pnpm 10, ejecutar `pnpm install`, copiar `.env.example` a `.env.local` y luego `pnpm dev`. Abrir `http://localhost:3000/judge`. Para demo no se necesitan credenciales. En Windows con CA corporativa se puede usar el almacén del sistema con `$env:NODE_OPTIONS='--use-system-ca'`; nunca desactivar verificación TLS.
 
@@ -340,15 +341,20 @@ La plantilla completa es [`.env.example`](../.env.example). Copiar a `.env.local
 | `pnpm verify:wallet <dirección-pública> 10 [spender]`       | Lee BNB, USDT, decimales y allowance en un mismo bloque; **solo lectura**.                                            |
 | `pnpm devex:export`                                         | Exporta telemetría reciente desde app en ejecución.                                                                   |
 | `pnpm agent`                                                | Servidor local de informes.                                                                                           |
-| `pnpm wallet status                                         | balance                                                                                                               | settings | trade policy.json` | CLI Agentic Wallet opcional; `trade` es interactivo y puede mover fondos tras confirmación. |
+| `pnpm wallet status`, `pnpm wallet balance`, `pnpm wallet settings`, `pnpm wallet trade policy.json` | CLI Agentic Wallet opcional; `trade` exige confirmación interactiva. |
+| `pnpm verify:db` | Migraciones idempotentes, concurrencia, ownership y hashes únicos en una base desechable. |
+| `pnpm inspect:router` | Inspección de router/spender y proxy; no autoriza contratos. |
+| `pnpm verify:production --demo`, `pnpm verify:production` | Readiness de despliegue demo y live, respectivamente. |
+| `pnpm verify:deployment https://HOST` | HTTP, ocho páginas, headers, salud de PostgreSQL y ownership de recibos demo. |
+| `pnpm verify:studio`, `pnpm verify:secrets` | Hook externo de informes y escaneo de secretos conocidos en archivos/client bundle. |
 
 ## 12. Pruebas, evidencia y despliegue
 
-El código cubre parser, precisión monetaria, referencia, normalización, checks, aislamiento de candidatos, esquemas de respuestas oficiales, permisos de recibos, preparación y verificación de ejecución. Hay prueba de navegador para que la aprobación ERC-20 exija una confirmación distinta a la del trade. Playwright usa desktop Chrome e iPhone 13 emulado con Chromium; verifica las ocho páginas y los escenarios de demo. En la última verificación de esta sesión pasaron **66 pruebas unitarias en 8 archivos** y **10 pruebas de navegador** (ocho del recorrido principal y dos de aprobación, una por viewport). También pasaron `pnpm build`, `pnpm typecheck`, `pnpm lint` y la revisión de formato de los archivos cambiados. Estas pruebas no prueban una liquidación real.
+El código cubre parser, precisión monetaria, referencia, normalización, checks, aislamiento de candidatos, esquemas oficiales, permisos, preparación, replay y verificación de ejecución. Hay pruebas de navegador para consentimiento separado del approval y demo explícito. Playwright usa desktop Chrome e iPhone 13 emulado con Chromium sobre un servidor de producción en puerto 3100; verifica las ocho páginas y los escenarios. `pnpm test:e2e` construye el build antes del recorrido. [FINAL_STATUS.md](FINAL_STATUS.md) conserva los comandos y resultados finales medidos. Estas pruebas no prueban una liquidación real.
 
-La evidencia externa sanitizada de `docs/devex/` refleja observaciones puntuales de 2026-09-30; volver a ejecutar probes para conocer el estado actual. `verify:quote` con dirección sin fondos puede demostrar que la API de simulación responde, pero una simulación fallida no satisface el gate live. La Wallet API autenticada y Agentic Wallet local no fueron probados de extremo a extremo en esta sesión. El estado “Configured · not verified” de `/system` significa exactamente eso.
+La evidencia externa sanitizada de `docs/devex/` refleja observaciones puntuales del 01-10-2026; repetir probes antes de operar. `verify:quote` con dirección sin fondos alcanzó la API de simulación, pero la simulación falló y el comando devuelve `READINESS BLOCKED`. La Wallet API cuenta con evidencia de lectura del 01-10 a las 02:23 UTC, con cero activos; no demuestra fondos ni ejecución. Agentic Wallet sigue sin runtime autenticado. El estado “Configured · not verified” de `/system` significa exactamente eso.
 
-Para despliegue, [DEPLOYMENT.md](DEPLOYMENT.md) describe Vercel con raíz `apps/web`, acceso al workspace superior, variables de entorno en el proveedor, PostgreSQL 14+ gestionado con TLS, migración, límites de ingreso y smoke checks de ocho páginas/`/api/health`. No hay proyecto Vercel ni remoto Git configurado aquí. La persistencia de memoria y el rate limit por proceso no son adecuados para múltiples instancias. Establecer backups, monitoreo y retención antes de producción. El servicio standalone debe quedar tras proxy HTTPS autenticado. La [demostración para jueces](JUDGE_SCRIPT.md) separa explícitamente datos ficticios de pruebas reales.
+Para despliegue, [DEPLOYMENT.md](DEPLOYMENT.md) describe Vercel con raíz `apps/web`, acceso al workspace superior, variables de entorno en el proveedor, PostgreSQL gestionado con TLS, migración, límites de ingreso y smoke checks. El remoto Git está configurado; falta un proyecto Vercel autenticado y una base gestionada. El build y el servidor local de producción se verifican por separado de un despliegue público. La persistencia de memoria y el rate limit por proceso no cubren múltiples instancias. El servicio standalone necesita proxy HTTPS autenticado. La [demostración para jueces](JUDGE_SCRIPT.md) distingue datos ficticios de pruebas reales.
 
 ## 13. Mejoras realizadas y trabajo pendiente
 
@@ -371,7 +377,6 @@ Para despliegue, [DEPLOYMENT.md](DEPLOYMENT.md) describe Vercel con raíz `apps/
 | 1 — fondos     | Financiar la wallet de prueba con al menos 10 USDT y BNB suficiente para approval y SWAP; repetir `verify:wallet` porque la lectura del 30-09 ya no es garantía.                                                                                     |
 | 1 — router     | Verificar por fuentes oficiales o auditoría propia contrato, spender, proxy/implementación, permisos y riesgos; solo entonces incluir la dirección revisada en `ATLAS_ALLOWED_ROUTERS`. Bytecode y quote firmada no prueban seguridad o procedencia. |
 | 1 — ejecución  | Conseguir simulación exitosa con wallet financiada, quote fresca y consentimiento separado; verificar hash, receipt y Transfer logs. Guardar la evidencia real.                                                                                      |
-| 2 — producto   | Corregir el rótulo de referencia pública sin timestamp; mostrar costo desglosado y revisar semántica exacta de `tradeFee`; mejorar manejo de approvals pendientes entre sesiones y verificación de allowance tras minado.                            |
 | 2 — operación  | Despliegue HTTPS, PostgreSQL gestionado, backups, rate limits compartidos, alertas, logs/telemetría durables y revisión de seguridad antes de exposición pública.                                                                                    |
 | 3 — rutas      | Implementar RFQ con firma, settlement y simulación/verificación compatibles con el protocolo oficial; probarlo antes de desbloquear RFQ.                                                                                                             |
 | 3 — ecosistema | Desplegar Studio seller, verificar identidad ERC-8004 y tarea ERC-8183 real; decidir si b402/x402 aporta al servicio y, si se implementa, probar cobro y settlement.                                                                                 |
@@ -385,7 +390,7 @@ Esta secuencia concreta responde al objetivo **comprar NVDA por 10 USDT**. No in
 1. **Preparar datos.** Mantener las credenciales Binance existentes en `.env.local`; añadir `ALPACA_API_KEY_ID` y `ALPACA_API_SECRET_KEY`. Dejar `ATLAS_REFERENCE_URL` vacío si se quiere que gane Alpaca. Ejecutar `pnpm verify:reference NVDA` cuando el trade IEX pueda estar fresco.
 2. **Verificar token y fondos.** Confirmar contrato USDT/18 decimales con fuentes del emisor/explorador y fijar `ATLAS_USDT_ADDRESS`, `ATLAS_USDT_DECIMALS=18`. Financiar la wallet con USDT y BNB; ejecutar `pnpm verify:wallet <dirección-pública> 10 [spender-verificado]`. Los saldos del 30-09 fueron cero.
 3. **Revisar router/spender.** Contrastar la ruta devuelta por Binance con documentación oficial y análisis del contrato; revisar código/proxy, allowances y destinatario. Solo después rellenar `ATLAS_ALLOWED_ROUTERS`. No usar la dirección observada arriba como aprobación automática.
-4. **Preparar persistencia.** Mantener PostgreSQL sano y `pnpm db:migrate` aplicado. Confirmar `/api/system/status`; las casillas de readiness solo prueban presencia/formato de configuración, mientras la simulación y observaciones prueban funcionamiento.
+4. **Preparar persistencia.** Mantener PostgreSQL sano y `pnpm db:migrate` aplicado. Confirmar `/api/system/status`; el estado de base consulta todas las tablas requeridas. Las demás casillas de configuración no equivalen a simulación ni a evidencia de funcionamiento externo.
 5. **Habilitar live de forma deliberada.** Fijar `ATLAS_DEMO_MODE=false`, `ATLAS_MAX_TRADE_USDT=10` y, tras los puntos anteriores, `ATLAS_LIVE_TRADING_ENABLED=true`. Reiniciar el servidor para cargar variables.
 6. **Conectar wallet.** Abrir `/trade`, conectar la dirección financiada y comprobar red BSC mainnet `0x38`. Crear política `buy`, `NVDA`, `10`, `USDT`, `live`; revisar límites y datos de referencia. Ejecutar evaluación. Si no hay ruta aprobada, inspeccionar checks y resolver la causa; un rechazo es un resultado correcto.
 7. **Allowance, si falta.** Usar “Check exact approval”; revisar token, spender y 10 USDT exactos. Confirmar en la wallet como transacción **separada**, esperar minado y pedir una nueva quote/simulación. Approval consume BNB y no compra NVDA por sí mismo.
@@ -403,7 +408,8 @@ No se debe afirmar “mainnet listo” únicamente porque un flag se activó, el
 - [DEPLOYMENT.md](DEPLOYMENT.md): despliegue web, PostgreSQL y release check.
 - [AGENT_STUDIO.md](AGENT_STUDIO.md): integración opcional con seller generado.
 - [JUDGE_SCRIPT.md](JUDGE_SCRIPT.md): recorrido de demostración.
-- [DEVELOPER_EXPERIENCE_NOTES.md](DEVELOPER_EXPERIENCE_NOTES.md): plantilla de observaciones humanas.
+- [DEVELOPER_EXPERIENCE_NOTES.md](DEVELOPER_EXPERIENCE_NOTES.md): informe de comportamiento medido y mejoras de integración.
+- [FINAL_STATUS.md](FINAL_STATUS.md): resultados finales, checklist y acciones externas.
 
 ### Fuentes externas primarias
 

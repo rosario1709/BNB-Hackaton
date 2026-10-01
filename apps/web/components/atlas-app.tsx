@@ -2,6 +2,8 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import Link from 'next/link';
 import Decimal from 'decimal.js';
+import { requireBrowserWallet, sendBrowserTransaction, type BrowserWallet } from '../../../packages/execution/browser';
+import { address } from '../../../packages/core/domain';
 import {
   ArrowUpRight,
   ArrowRight,
@@ -77,7 +79,7 @@ type ApprovalPreparation =
       denomination: string;
       routeSymbol: string;
     };
-type EipProvider = { request(args: { method: string; params?: unknown[] }): Promise<unknown> };
+type EipProvider = BrowserWallet;
 declare global {
   interface Window {
     ethereum?: EipProvider;
@@ -162,6 +164,20 @@ export function AtlasApp({ page }: { page: string }) {
     const stored = sessionStorage.getItem('atlas_wallet');
     if (stored) setWallet(stored);
   }, [refresh]);
+  useEffect(() => {
+    const provider = window.ethereum;
+    const invalidate = () => {
+      setWallet('');
+      sessionStorage.removeItem('atlas_wallet');
+      setWalletError('Wallet account or network changed. Reconnect before evaluating or signing.');
+    };
+    provider?.on?.('accountsChanged', invalidate);
+    provider?.on?.('chainChanged', invalidate);
+    return () => {
+      provider?.removeListener?.('accountsChanged', invalidate);
+      provider?.removeListener?.('chainChanged', invalidate);
+    };
+  }, []);
   async function connect() {
     try {
       setWalletError('');
@@ -169,15 +185,18 @@ export function AtlasApp({ page }: { page: string }) {
         throw new Error(
           'No browser wallet detected. Install a BSC-compatible wallet, or use the local Agentic Wallet guide on the Agent page.',
         );
-      const accounts = (await window.ethereum.request({
+      const accounts = await window.ethereum.request({
         method: 'eth_requestAccounts',
-      })) as string[];
-      if (!accounts[0]) throw new Error('Wallet did not return an account.');
+      });
+      if (!Array.isArray(accounts)) throw new Error('Wallet did not return an account.');
+      const connected = address.parse(accounts[0]);
       if (await window.ethereum.request({ method: 'eth_chainId' }) !== '0x38')
         await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x38' }] });
       if (await window.ethereum.request({ method: 'eth_chainId' }) !== '0x38') throw new Error('Switch your wallet to BNB Smart Chain mainnet (56).');
-      setWallet(accounts[0]);
-      sessionStorage.setItem('atlas_wallet', accounts[0]);
+      await requireBrowserWallet(window.ethereum, connected);
+      setWalletError('');
+      setWallet(connected);
+      sessionStorage.setItem('atlas_wallet', connected);
     } catch (e) {
       setWalletError(e instanceof Error ? e.message : 'Wallet connection declined.');
     }
@@ -287,12 +306,14 @@ function Trade({
   wallet,
   onComplete,
   preset,
+  demo = false,
 }: {
   home?: boolean;
   system?: System;
   wallet: string;
   onComplete: () => void;
   preset?: Scenario;
+  demo?: boolean;
 }) {
   const [text, setText] = useState(initial);
   const [policy, setPolicy] = useState<Policy>();
@@ -307,6 +328,12 @@ function Trade({
   const [approvalHash, setApprovalHash] = useState('');
   const [approvalId, setApprovalId] = useState('');
   const [approvalNotice, setApprovalNotice] = useState('');
+  useEffect(() => {
+    setReceipt(undefined);
+    setConfirmed(false);
+    setApproval(undefined);
+    setApprovalConfirmed(false);
+  }, [wallet]);
   useEffect(() => {
     const saved = sessionStorage.getItem('atlas_approval_pending');
     if (saved) try {
@@ -354,6 +381,7 @@ function Trade({
         policy: p,
         wallet: wallet || undefined,
         scenario,
+        demo,
         userText: text,
         approvalId: confirmedApprovalId,
       });
@@ -401,12 +429,7 @@ function Trade({
       const accounts = (await window.ethereum.request({ method: 'eth_accounts' })) as string[];
       if (accounts[0]?.toLowerCase() !== wallet.toLowerCase())
         throw new Error('Wallet account changed. Reconnect and evaluate again.');
-      const hash = (await window.ethereum.request({
-        method: 'eth_sendTransaction',
-        params: [{ ...approval.transaction, value: '0x0', chainId: '0x38' }],
-      })) as string;
-      if (!/^0x[0-9a-fA-F]{64}$/.test(hash))
-        throw new Error('Wallet did not return a valid BSC transaction hash.');
+      const hash = await sendBrowserTransaction(window.ethereum, approval.transaction, wallet);
       setApprovalHash(hash);
       setApprovalId(approval.approvalId);
       sessionStorage.setItem('atlas_approval_pending', JSON.stringify({ approvalId: approval.approvalId, transactionHash: hash }));
@@ -482,16 +505,7 @@ function Trade({
       if (Date.now() >= Date.parse(prepared.expiresAt))
         throw new Error('Quote expired before signing.');
       setBusy('Review transaction in your wallet');
-      const transactionHash = (await window.ethereum.request({
-        method: 'eth_sendTransaction',
-        params: [
-          {
-            ...prepared.transaction,
-            value: '0x' + BigInt(prepared.transaction.value).toString(16),
-            chainId: '0x38',
-          },
-        ],
-      })) as string;
+      const transactionHash = await sendBrowserTransaction(window.ethereum, prepared.transaction, wallet);
       const p = { executionId: prepared.executionId, transactionHash };
       setPending(p);
       sessionStorage.setItem('atlas_pending', JSON.stringify(p));
@@ -952,24 +966,29 @@ function Trade({
 }
 function Race({ receipt }: { receipt: Receipt }) {
   const winner = receipt.candidates.find((c) => c.id === receipt.selectedRouteId);
+  const quoteOnly = receipt.intent.executionMode === 'quote';
+  const hasQuotes = receipt.candidates.some((c) => !!c.quote);
+  const missingReference = receipt.candidates.some((c) =>
+    c.quote && c.checks.some((check) => check.code === 'REFERENCE' && check.status === 'fail'));
   return (
     <section className="race">
       <div className="section-title">
         <div>
-          <div className="eyebrow">EVIDENCE BEFORE EXECUTION</div>
-          <h2>{receipt.status === 'quoted' ? 'Route comparison' : 'Simulation Race'}</h2>
+          <div className="eyebrow">{quoteOnly ? 'PRICE QUOTES & POLICY CHECKS' : 'EVIDENCE BEFORE EXECUTION'}</div>
+          <h2>{quoteOnly ? 'Route comparison' : 'Simulation Race'}</h2>
         </div>
         <Badge tone={receipt.decision === 'approved' ? 'green' : 'red'}>
-          {receipt.decision === 'approved' ? 'POLICY PASSED' : 'TRADE BLOCKED'}
+          {receipt.decision === 'approved' ? 'POLICY PASSED' : quoteOnly ? 'POLICY NOT VERIFIED' : 'TRADE BLOCKED'}
         </Badge>
       </div>
       <div className="evidence-badges">
         <Badge tone={receipt.dataMode === 'demo' ? 'amber' : 'neutral'}>{receipt.dataMode === 'demo' ? 'DEMO DATA' : 'LIVE DATA'}</Badge>
-        <Badge>{receipt.status.toUpperCase()}</Badge>
+        <Badge>{quoteOnly ? (hasQuotes ? 'QUOTES RECEIVED' : 'QUOTES UNAVAILABLE') : receipt.status.toUpperCase()}</Badge>
         {receipt.dataMode === 'live' && receipt.transactionHash && <Badge>MAINNET EXECUTION</Badge>}
         {receipt.dataMode === 'live' && receipt.status === 'confirmed' && receipt.verification === 'passed' && receipt.chainEvidence && <Badge tone="green">VERIFIED</Badge>}
         {receipt.verification === 'mismatch' && <Badge tone="red">FLOW MISMATCH · REVIEW REQUIRED</Badge>}
       </div>
+      {quoteOnly && <p className="notice">Quote only retrieves prices without simulating or sending a transaction. Independent reference, freshness and price deviation checks still apply.</p>}
       <div className="race-cards">
         {receipt.candidates.map((e) => (
           <RouteCard
@@ -980,16 +999,23 @@ function Race({ receipt }: { receipt: Receipt }) {
           />
         ))}
       </div>
+      {receipt.dataMode === 'demo' && <p className="fineprint">Fictional unit example: Ondo = 2 shares/token, bStocks = 1, xStocks = 0.5. Compare normalized exposure: more tokens does not mean more stock.</p>}
       <div className={`decision ${winner ? 'selected' : 'blocked'}`}>
         <div className="decision-icon">{winner ? <ShieldCheck size={25} /> : <X size={25} />}</div>
         <div>
-          <span className="micro">{winner ? 'SELECTED ROUTE' : 'EXECUTION REFUSED'}</span>
+          <span className="micro">{quoteOnly ? (winner ? 'SELECTED QUOTE' : 'QUOTE REVIEW') : winner ? 'SELECTED ROUTE' : 'EXECUTION REFUSED'}</span>
           <h3>
             {winner
               ? `${names[winner.representation.provider]} · ${winner.representation.symbol}`
-              : 'Your policy protected this trade.'}
+              : quoteOnly
+                ? hasQuotes && missingReference ? 'Quotes received; stock reference unavailable.' : 'Quote policy needs review.'
+                : 'Your policy protected this trade.'}
           </h3>
-          <p>{receipt.reason}</p>
+          <p>{quoteOnly && !winner
+            ? hasQuotes && missingReference
+              ? `The independent stock reference is missing, so your ${(receipt.intent.maxReferenceDeviationBps / 100).toFixed(2)}% price deviation limit cannot be checked.${receipt.intent.side === 'buy' ? ' Net stock exposure after network costs also requires that reference.' : ''}`
+              : 'Review the failed checks below each candidate. No transaction was simulated or submitted.'
+            : receipt.reason}</p>
           {winner && !receipt.transactionHash && <p><strong>WHY THIS ROUTE WON</strong><br />
             Highest eligible net {receipt.intent.side === 'buy' ? 'stock exposure' : 'USDT output'} after estimated network fees.
             Reference deviation within policy. {winner.simulation?.success ? 'Simulation passed.' : 'Quote only; simulation required before execution.'}
@@ -1017,7 +1043,7 @@ function Race({ receipt }: { receipt: Receipt }) {
       </div>
       <div className="panel timeline">
         <div className="panel-heading">
-          <h3>Execution evidence</h3>
+          <h3>{quoteOnly ? 'Quote evidence' : 'Execution evidence'}</h3>
           <Link href="/receipts">
             View receipts <ArrowUpRight size={13} />
           </Link>
@@ -1084,6 +1110,7 @@ function RouteCard({
         <small>{demo ? 'Fictional demo quote' : (e.quote?.executionMode ?? 'Unavailable')}</small>
       </div>
       <dl>
+        <div><dt>Quote validity</dt><dd>{e.quote ? `Until ${new Date(e.quote.expiresAt).toLocaleTimeString()}` : 'Unavailable'}</dd></div>
         <div><dt>Shares per token / decimals</dt><dd>{e.representation.sharesPerToken} / {e.representation.decimals}</dd></div>
         <div><dt>Normalized gross shares</dt><dd>{amount(e.grossShares)}</dd></div>
         <div><dt>Executable price / share</dt><dd>{money(e.executionPrice)}</dd></div>
@@ -1871,6 +1898,7 @@ function Judge({
   onComplete: () => void;
 }) {
   const [scenario, setScenario] = useState<Scenario>('successful-best-execution');
+  const [demo, setDemo] = useState(true);
   const [verified, setVerified] = useState<Receipt>();
   useEffect(() => { api<{ receipts: Receipt[] }>('receipts').then(({ receipts }) =>
     setVerified(receipts.find((r) => r.dataMode === 'live' && r.status === 'confirmed' && r.verification === 'passed' && !!r.chainEvidence && !!r.transactionHash)))
@@ -1882,7 +1910,11 @@ function Judge({
       </Heading>
       <p className="judge-intro">A stock may have multiple tokenized representations. ATLAS discovers, normalizes, verifies and routes across them.</p>
       <p className="fineprint">INTENT → DISCOVER → REFERENCE → QUOTE → NORMALIZE → SIMULATE → VERIFY → ROUTE → HUMAN APPROVAL → BSC → AUDITABLE RECEIPT</p>
-      <div className="notice">{system?.mode === 'demo' ? 'DEMO DATA · Fictional scenarios. No funds move.' : 'LIVE DATA · Reference, simulation and policy checks must pass before wallet confirmation.'}</div>
+      <div className="notice">{demo || system?.mode === 'demo' ? 'DEMO DATA · Fictional scenarios. No funds move.' : system?.dataSource === 'public' ? 'PUBLIC DATA · Authenticated quotes and independent reference still required.' : 'LIVE DATA · Reference, simulation and policy checks must pass before wallet confirmation.'}</div>
+      <div className="judge-controls">
+        <button className={'button ' + (demo ? 'primary' : 'secondary')} onClick={() => setDemo(true)}>Fictional demo</button>
+        <button className={'button ' + (!demo ? 'primary' : 'secondary')} onClick={() => setDemo(false)}>Configured data</button>
+      </div>
       {verified ? <p><Badge tone="green">VERIFIED MAINNET TRADE</Badge> <a href={verified.blockExplorerUrl} target="_blank" rel="noreferrer">View BscScan evidence</a></p> : <p className="fineprint">NO VERIFIED MAINNET TRADE RECORDED YET · in this browser session.</p>}
       <div className="judge-steps">
         {[
@@ -1932,13 +1964,13 @@ function Judge({
           </a>
         )}
       </div>
-      {system?.mode === 'live' && (
+      {!demo && system?.mode === 'live' && (
         <div className="notice">
           Live data mode is active. Scenario fixtures are unavailable; evaluations use actual
           discovered markets.
         </div>
       )}
-      <Trade system={system} wallet={wallet} onComplete={onComplete} preset={scenario} />
+      <Trade key={demo ? 'fictional' : 'configured'} demo={demo} system={demo && system ? { ...system, mode: 'demo', dataSource: 'demo', liveEnabled: false } : system} wallet={wallet} onComplete={onComplete} preset={scenario} />
     </>
   );
 }

@@ -25,6 +25,17 @@ async function child() {
   assert.equal(results.filter((r) => r.status === 'fulfilled').length, 1);
   await assert.rejects(db.claimExecution('owner-a', receipt.intent.id, transaction, receipt.id, new Date().toISOString()));
   assert.equal(await db.getExecution('owner-b', receipt.intent.id), undefined);
+  const executionHashes = [`0x${'b'.repeat(64)}`, `0x${'c'.repeat(64)}`];
+  const bindings = await Promise.allSettled(executionHashes.map((hash) => db.bindExecutionHash('owner-a', receipt.intent.id, hash)));
+  assert.equal(bindings.filter((r) => r.status === 'fulfilled').length, 1);
+  const bound = (await db.getExecution('owner-a', receipt.intent.id))!.transactionHash!;
+  await db.bindExecutionHash('owner-a', receipt.intent.id, bound);
+  await assert.rejects(db.bindExecutionHash('owner-b', receipt.intent.id, bound));
+  await assert.rejects(db.bindExecutionHash('owner-a', receipt.intent.id, executionHashes.find((h) => h !== bound)!));
+  const secondIntent = crypto.randomUUID();
+  await db.claimExecution('owner-a', secondIntent, transaction, receipt.id, new Date().toISOString());
+  await assert.rejects(db.bindExecutionHash('owner-a', secondIntent, bound));
+  await db.databaseHealth();
   const evidence = { id: crypto.randomUUID(), status: 'prepared' as const, token: transaction.to, spender: transaction.to, wallet: transaction.from, amountRaw: '10', transaction };
   await db.saveApproval('owner-a', evidence, receipt.intent, receipt.id);
   assert.equal(await db.getApproval('owner-b', evidence.id), undefined);
@@ -36,7 +47,7 @@ async function child() {
   await db.saveReceipt('owner-a', clone);
   assert.notEqual((await db.getReceipt('owner-a', receipt.id))?.reason, clone.reason);
   await sql.end();
-  console.log(JSON.stringify({ status: 'PASS', checks: ['migrations applied twice', 'receipt owner isolation', 'concurrent execution claim', 'duplicate/replay rejection', 'execution owner isolation', 'approval owner isolation', 'persistent review hold', 'immutable snapshots'], realTrades: 0 }));
+  console.log(JSON.stringify({ status: 'PASS', checks: ['migrations applied twice', 'receipt owner isolation', 'concurrent execution claim', 'duplicate/replay rejection', 'execution owner isolation', 'atomic transaction hash binding', 'cross-execution hash replay rejection', 'full schema health', 'approval owner isolation', 'persistent review hold', 'immutable snapshots'], realTrades: 0 }));
 }
 async function main() {
   if (!process.env.DATABASE_URL) throw new Error('Configure DATABASE_URL before the PostgreSQL integration check.');

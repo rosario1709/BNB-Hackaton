@@ -1,6 +1,6 @@
 # Studio deployment boundary
 
-The actual implemented artifact is `packages/agent/studio-hook.ts`, a deterministic `runWork(prompt, {sessionId})` integration. It validates JSON policy input, refuses live mode, calls the authenticated ATLAS report endpoint, and returns JSON evidence. It does not fabricate agent identity or implement its own escrow contract.
+The actual implemented artifact is `packages/agent/studio-hook.ts`, a deterministic `runWork(prompt, {sessionId})` integration. It validates JSON policy input, refuses live mode, calls the authenticated ATLAS report endpoint, and returns JSON evidence. The endpoint must use HTTPS without embedded URL credentials, and its bearer token must contain at least 32 characters. The returned report must preserve the entire parsed policy, including ticker, denomination and every risk limit. Use canonical ticker symbols such as `NVDA`. It does not fabricate agent identity or implement its own escrow contract.
 
 The official Studio seller verifies funded ERC-8183 jobs and signs result submission in its fixed signing layer. ATLAS's hook is used only for producing the deliverable. No trading key is passed into the hook.
 

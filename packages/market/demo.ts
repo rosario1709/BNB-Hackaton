@@ -36,7 +36,7 @@ export class DemoAdapter implements DataAdapter {
           tokenAddress: `DEMO:${e.ticker}:${provider}`,
           symbol: e.ticker + { bstocks: 'b', ondo: 'on', xstocks: 'x', unknown: '' }[provider],
           decimals: 18,
-          sharesPerToken: '1',
+          sharesPerToken: { bstocks: '1', ondo: '2', xstocks: '0.5', unknown: '1' }[provider],
           tradable: true,
           status: 'regular',
           sourceTimestamp: new Date().toISOString(),
@@ -49,6 +49,7 @@ export class DemoAdapter implements DataAdapter {
     return {
       tokenAddress: r.tokenAddress,
       onchainPrice: new Decimal(price)
+        .mul(r.sharesPerToken)
         .mul(r.provider === 'xstocks' ? '1.024' : r.provider === 'ondo' ? '1.001' : '1.004')
         .toFixed(),
       referencePrice: price,
@@ -83,8 +84,8 @@ export class DemoAdapter implements DataAdapter {
         expectedAmountOut: fromRaw(raw, 18),
         amountOutRaw: raw,
         outputDecimals: 18,
-        inputPriceUsd: '1',
-        outputPriceUsd: '1',
+        inputPriceUsd: p.side === 'buy' ? '1' : m.onchainPrice!,
+        outputPriceUsd: p.side === 'buy' ? m.onchainPrice! : '1',
         gasUsd: '0.015',
         slippageBps: p.maxSlippageBps,
         priceImpactBps: 8,

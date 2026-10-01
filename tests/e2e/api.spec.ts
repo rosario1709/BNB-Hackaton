@@ -23,3 +23,10 @@ test('judge distinguishes demo decisions from verified mainnet evidence', async 
   await expect(page.getByText('VERIFIED', { exact: true })).toHaveCount(0);
   await page.screenshot({ path: `test-results/judge-${test.info().project.name}.png`, fullPage: true });
 });
+test('explicit judge demo refuses live execution mode', async ({ request }) => {
+  const response = await request.post('/api/routes/evaluate', { data: { demo: true, policy: { ticker: 'NVDA', amount: '10' } } });
+  expect(response.status()).toBe(200);
+  expect(await response.json()).toMatchObject({ dataMode: 'demo', executed: false, decision: 'approved' });
+  const live = await request.post('/api/routes/evaluate', { data: { demo: true, policy: { ticker: 'NVDA', amount: '10', executionMode: 'live' } } });
+  expect(live.status()).toBe(400);
+});

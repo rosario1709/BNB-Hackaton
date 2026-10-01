@@ -6,7 +6,7 @@ ATLAS evaluates and prepares. The user's wallet signs. The assistant must not ap
 
 ## Preconditions
 
-Binance Web3 credentials, both Alpaca IEX credentials (or a configured independent HTTPS feed), migrated PostgreSQL, a BSC wallet with at least 10 USDT and BNB for approval plus swap gas, a verified USDT contract/precision, and operator-reviewed router/spender addresses. The latest wallet preflight returned zero USDT and zero BNB. Never send a private key or seed phrase to ATLAS.
+Binance Web3 credentials, both Alpaca IEX credentials (or a configured independent HTTPS feed), migrated PostgreSQL, a BSC wallet with at least 10 USDT and BNB for approval plus swap gas, a verified USDT contract/precision, and operator-reviewed router/spender addresses. The historical user-wallet check on 2026-09-30 returned zero USDT and zero BNB; repeat it with the intended public address. The newer random-address probe only verifies tooling and cannot establish the user's current balance. Never send a private key or seed phrase to ATLAS.
 
 Configure private values only in root `.env.local` or the hosting provider's server environment. Keep `ATLAS_LIVE_TRADING_ENABLED=false` during preparation. `ATLAS_ALLOWED_ROUTERS` has no default and must not be populated merely because Binance returned a contract or bytecode exists.
 
@@ -49,6 +49,8 @@ Review [router-inspection.json](devex/router-inspection.json). Confirm official 
 - `reverted` or `verification=mismatch` requires review; confirmed EVM status alone does not mean a correct trade. ATLAS stores a wallet review hold in PostgreSQL and blocks new preparations.
 - After an operator has investigated and reconciled the exact transaction and balances, the operator may remove only that wallet's row from `execution_holds` using their database administration tool. There is no public endpoint or automatic reset for this hold.
 - Each operation requires a new quote/reference/simulation. Do not reuse historical quote IDs from `docs/devex/`.
+- Each execution binds atomically to one transaction hash in PostgreSQL. A different hash for the same execution, or the same hash for a different execution, is rejected. Keep the hash returned by MetaMask; never overwrite it with a replacement without operator review.
+- A sender, target, value or calldata mismatch also creates a review hold. A successful mined transaction still reports `verification=mismatch` with the exact failing fields. Investigate it before clearing the hold.
 
 ## Evidence to preserve after the user's first trade
 

@@ -139,6 +139,7 @@ export interface Receipt {
   chainEvidence?: {
     chainId: 56; blockNumber: string; blockHash: string; inputDebitRaw: string;
     outputCreditRaw: string; minimumOutputRaw: string;
+    transactionMatches?: boolean; mismatches?: string[];
     transfers: { token: string; from: string; to: string; amountRaw: string; logIndex: number }[];
   };
   blockExplorerUrl?: string;

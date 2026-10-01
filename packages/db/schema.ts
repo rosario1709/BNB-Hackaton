@@ -27,6 +27,7 @@ export const receipts = pgTable('execution_receipts', {
 export const executions = pgTable('executions', {
   id: text().primaryKey(),
   owner: text().notNull(),
+  transactionHash: text(),
   payload: jsonb()
     .$type<{ transaction: Transaction; receiptId: string; expiresAt: string }>()
     .notNull(),

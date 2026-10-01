@@ -35,6 +35,8 @@ pnpm dev
 
 Open http://localhost:3000/judge. No credentials are needed for the fictional simulation scenarios. The server selects explicit demo mode when both Binance credentials are absent.
 
+The **Fictional demo** option on `/judge` works even with live data configured. Each request explicitly selects fictional data, every resulting receipt is marked `DEMO DATA`, and live execution is prohibited. **Configured data** uses the actual runtime adapters and preserves their failures.
+
 For configuration, copy `.env.example` to root `.env.local`. Do not commit the latter. On Windows environments with a corporate CA, use Node's system trust store (`$env:NODE_OPTIONS='--use-system-ca'`); do not disable certificate verification.
 
 ## Demo
@@ -79,19 +81,21 @@ Domain and integration code lives under `packages/`; Next.js owns the UI and HTT
 
 Intent → policy validation → BSC discovery → market/reference snapshot → quotes → normalization → simulation → hard policy filter → highest valid net output → receipt.
 
+**Quote only** retrieves quotes and skips transaction simulation/signing. Independent reference, freshness and deviation checks still apply. The interface distinguishes **QUOTES RECEIVED** from **POLICY NOT VERIFIED**: a missing stock reference can leave valid price quotes visible while preventing route selection. For buys, net stock exposure after network costs also needs that reference.
+
 Live mode additionally requires an operator-enabled feature flag, verified USDT and router configuration, BSC chain verification, input and gas balances, fresh quote evidence, exact simulated token flows, explicit user confirmation, and user-controlled signing. A quote/simulation receipt cannot be promoted into a live transaction.
 
 ## Binance / BNB integrations
 
 | Integration                              | Implementation                                                                                  | Verified runtime status                                                                                                                           |
 | ---------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Public tokenized-securities Wallet Skill | Implemented: discovery, issuer metadata, per-asset status, dynamic market data                  | **WORKING**: real NVDA representations from Ondo, xStocks, bStocks retrieved on 2026-09-30; evidence in `docs/devex/live-discovery-evidence.json` |
-| Authenticated RWA API                    | Implemented: search, token list, underlying market, prices                                      | **READ VERIFIED** on 2026-09-30 with local API credentials; evidence in `docs/devex/authenticated-read-evidence.json`                             |
-| Market API                               | Implemented RWA price adapter                                                                   | **READ VERIFIED** on 2026-09-30 for NVDAon and NVDAB                                                                                              |
+| Public tokenized-securities Wallet Skill | Implemented: discovery, issuer metadata, per-asset status, dynamic market data                  | **WORKING**: real NVDA representations from Ondo, xStocks, bStocks retrieved on 2026-10-01; evidence in `docs/devex/live-discovery-evidence.json` |
+| Authenticated RWA API                    | Implemented: search, token list, underlying market, prices                                      | **READ VERIFIED** on 2026-10-01 with local API credentials; evidence in `docs/devex/authenticated-read-evidence.json`                             |
+| Market API                               | Implemented RWA price adapter                                                                   | **READ VERIFIED** on 2026-10-01 for NVDAon and NVDAB                                                                                              |
 | Independent equity reference             | Generic HTTPS source or optional Alpaca IEX latest trade with source timestamp                  | **NOT CONFIGURED** locally; tests verify parsing and fail-closed behavior                                                                         |
-| Trading API                              | Implemented quotes and SWAP construction; RFQ quotes retained                                   | **QUOTE + BUILD VERIFIED** on 2026-09-30 with an unfunded probe address; no signing or broadcast                                                  |
+| Trading API                              | Implemented quotes and SWAP construction; RFQ quotes retained                                   | **QUOTE + BUILD VERIFIED** on 2026-10-01 with an unfunded probe address; no signing or broadcast                                                  |
 | Transaction API                          | Implemented exact-transaction simulation and predicted-flow checks                              | **API REACHED**: unfunded probe simulation returned a failed result; funded success is unverified                                                 |
-| Wallet API                               | Implemented address balances                                                                    | **NOT VERIFIED**: no wallet address supplied                                                                                                      |
+| Wallet API                               | Implemented address balances                                                                    | **READ VERIFIED** on 2026-10-01 02:23 UTC, zero assets; archived evidence in `docs/devex/wallet-read-evidence.json`. No funded execution established. |
 | Agentic Wallet                           | Implemented local status/balance/settings, preview, interactive SWAP execution and verification | **PARTIAL**: no authenticated wallet installed/configured in this session                                                                         |
 | BNB Agent Studio                         | Implemented `runWork` report hook against the documented seller interface                       | **PARTIAL**: no generated seller deployment, ERC-8004 identity, or live ERC-8183 task                                                             |
 | x402 / b402                              | Official V2 payment flow investigated; separate from core trade path                            | **NOT CONFIGURED / Planned**: payment serving is not implemented                                                                                  |
@@ -112,10 +116,12 @@ Sign in through Binance's official interactive flow. Set `ATLAS_BAW_EXECUTABLE` 
 pnpm wallet status
 pnpm wallet balance
 pnpm wallet settings
-pnpm wallet trade policy.json
+pnpm wallet trade examples/nvda-10-usdt.json
 ```
 
 `trade` rebuilds a live policy report, checks chain and balances, previews the exact SWAP through Agentic Wallet, prints parsed transaction/risk evidence, and requires typing `EXECUTE`. It refuses expired previews, reported risks, failed simulations, and RFQs. Developer Mode must be enabled by the user in Binance; ATLAS never changes wallet security settings. An App confirmation may still be required by Binance. No raw private keys enter this application.
+
+The provided policy file requests NVDA for exactly 10 USDT with 50 bps slippage, 100 bps reference deviation and a 300-second reference age. Review it before invoking the interactive wallet command. Missing prerequisites block preparation.
 
 ## BNB Agent Studio
 
@@ -182,13 +188,17 @@ With Binance credentials configured, `pnpm verify:authenticated` checks signed r
 
 Tests cover policy parsing, monetary precision, reference math, normalization, risk rejection, candidate isolation, simulation-only execution boundaries, official response schemas, and receipt ownership. Browser tests cover all eight pages at desktop/mobile widths, successful races, strict policy blocks, stale references, simulation failures, invalid input, and disconnected wallets. External calls are never represented by unit-test telemetry.
 
+`pnpm test:e2e` builds and tests the production server on port 3100, so an existing development server can keep running. `pnpm verify:db` uses a disposable database to check migrations, concurrent claims, unique transaction hashes and session isolation. A submitted execution binds to one hash; the same hash cannot be reused for another execution. Transaction-envelope or economic mismatches create a persistent wallet review hold.
+
+`pnpm verify:quote --simulate --approval` exits nonzero with `READINESS BLOCKED` if the requested simulation or approval check fails, even when quotes and API connectivity succeed. Historical evidence remains available for review.
+
 ## Deployment
 
 See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). The web app is compatible with a Vercel pnpm monorepo project rooted at `apps/web`. Configure environment variables in the hosting provider, run the database migration, then deploy. No hosting account or deployment credentials were supplied, so this repository has **not been publicly deployed**.
 
 ## Developer experience evidence
 
-`pnpm devex:export` exports actual recent runtime observations from a running app into `docs/devex/`. PostgreSQL stores observations captured alongside reports. The in-memory telemetry buffer is bounded; exports are not a complete lifetime archive. [docs/DEVELOPER_EXPERIENCE_NOTES.md](docs/DEVELOPER_EXPERIENCE_NOTES.md) is deliberately human-fillable with no invented opinions.
+`pnpm devex:export` exports actual recent runtime observations from a running app into `docs/devex/`. PostgreSQL stores observations captured alongside reports. The in-memory telemetry buffer is bounded; exports are not a complete lifetime archive. [docs/DEVELOPER_EXPERIENCE_NOTES.md](docs/DEVELOPER_EXPERIENCE_NOTES.md) records measured integration behavior with evidence, including failed checks. It contains no invented human feedback.
 
 ## Mainnet readiness
 
@@ -199,3 +209,9 @@ Mainnet execution moves real assets. Review the route and confirm before proceed
 ## Hackathon
 
 Target: [BNB Hack: Tokenized Stocks Edition 2026](https://www.bnbchain.org/en/hackathons/tokenized-stocks). The live public-data path genuinely discovers supported tokenized equities; the demo path remains fictional. Prize eligibility, full deployment, identity registration, and real execution must be demonstrated with actual evidence before submission.
+
+## Mainnet execution evidence
+
+No verified ATLAS trade is recorded yet. After the user signs and verification passes, export the receipt and record its transaction hash, BscScan link, input debit, output credit, representation, vendor, block and `verification=passed`. Leave these values absent until actual chain evidence exists. Follow [the first-trade runbook](docs/FIRST_REAL_TRADE.md).
+
+The current verification results, implementation checklist and external actions are in [docs/FINAL_STATUS.md](docs/FINAL_STATUS.md).

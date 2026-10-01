@@ -5,7 +5,9 @@ import { AgenticWallet } from '../packages/execution/agentic-wallet';
 import { evaluate } from '../packages/agent/service';
 import { policySchema } from '../packages/core/domain';
 import { prepareTransaction, verifyTransaction } from '../packages/execution';
-import { claimExecution, saveReceipt } from '../packages/db';
+import { bindExecutionHash, claimExecution, saveReceipt } from '../packages/db';
+import { safeMessage } from '../packages/core/http';
+try {
 const wallet = new AgenticWallet(),
   command = process.argv[2] ?? 'status';
 if (command === 'status') console.log(JSON.stringify(await wallet.status(), null, 2));
@@ -58,6 +60,7 @@ else if (command === 'trade') {
   const submitted = await wallet.execute(preview.requestId);
   console.log(JSON.stringify(submitted, null, 2));
   if (submitted.txHash) {
+    await bindExecutionHash(owner, receipt.intent.id, submitted.txHash);
     const verified = await verifyTransaction(
       receipt,
       transaction,
@@ -67,3 +70,7 @@ else if (command === 'trade') {
     console.log(JSON.stringify(verified, null, 2));
   }
 } else throw new Error('Supported commands: status, balance, settings, trade policy.json');
+} catch (error) {
+  console.error(JSON.stringify({ status: 'NOT READY', error: safeMessage(error) }));
+  process.exitCode = 1;
+}

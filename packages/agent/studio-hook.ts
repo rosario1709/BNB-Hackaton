@@ -10,9 +10,10 @@ export async function runWork(prompt: string, _opts: { sessionId: string }): Pro
     throw new Error('Intelligence-only agent: live execution prohibited.');
   const url = process.env.ATLAS_REPORT_URL,
     token = process.env.ATLAS_AGENT_TOKEN;
-  if (!url || !token)
+  if (!url || !token || token.length < 32)
     throw new Error('Configure ATLAS_REPORT_URL and ATLAS_AGENT_TOKEN in the Studio runtime.');
-  if (new URL(url).protocol !== 'https:') throw new Error('Studio report endpoint must use HTTPS.');
+  const endpoint = new URL(url);
+  if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password) throw new Error('Studio report endpoint must use HTTPS without URL credentials.');
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -35,7 +36,7 @@ export async function runWork(prompt: string, _opts: { sessionId: string }): Pro
     })
     .passthrough()
     .parse(await response.json());
-  if (report.intent.side !== policy.side || report.intent.amount !== policy.amount || report.intent.executionMode !== policy.executionMode)
+  if (JSON.stringify(report.intent) !== JSON.stringify(policy))
     throw new Error('ATLAS report policy does not match the requested deliverable.');
   return JSON.stringify(report);
 }

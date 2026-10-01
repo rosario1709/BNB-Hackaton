@@ -14,3 +14,15 @@ it('Studio returns a structured report without wallet signing capabilities', asy
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify(report))));
   expect(JSON.parse(await runWork(JSON.stringify(policy), { sessionId: 'test' }))).toEqual(report);
 });
+it.each([
+  { ticker: 'AAPL' }, { maxSlippageBps: 500 }, { maxReferenceDeviationBps: 1000 },
+  { maxReferenceAgeSeconds: 86400 }, { allowWhenReferenceStale: true },
+])('Studio rejects a report that changes policy %j', async (change) => {
+  vi.stubEnv('ATLAS_REPORT_URL', 'https://atlas.example/api/agent/best-execution');
+  vi.stubEnv('ATLAS_AGENT_TOKEN', 'synthetic-bearer-for-tests-only-000000');
+  const policy = policySchema.parse({ ticker: 'NVDA', amount: '10', executionMode: 'quote' });
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+    id: crypto.randomUUID(), intent: { ...policy, ...change }, candidates: [], decision: 'blocked', dataMode: 'live', executed: false,
+  }))));
+  await expect(runWork(JSON.stringify(policy), { sessionId: 'test' })).rejects.toThrow('does not match');
+});

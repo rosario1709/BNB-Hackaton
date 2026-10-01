@@ -21,6 +21,7 @@ export function checkRoute(p: Policy, e: Evaluation, now = Date.now()): RiskChec
   });
   const age = m.referenceTimestamp ? (now - Date.parse(m.referenceTimestamp)) / 1000 : NaN;
   const onchainAge = m.onchainTimestamp ? (now - Date.parse(m.onchainTimestamp)) / 1000 : NaN;
+  const quoteAge = q ? (now - Date.parse(q.quotedAt)) / 1000 : NaN;
   const price = m.onchainPrice
     ? new Decimal(m.onchainPrice).div(r.sharesPerToken).toFixed()
     : undefined;
@@ -81,8 +82,8 @@ export function checkRoute(p: Policy, e: Evaluation, now = Date.now()): RiskChec
     check(
       'QUOTE_FRESH',
       'Quote freshness',
-      !!q && Date.parse(q.expiresAt) > now && Date.parse(q.quotedAt) <= now + 5000,
-      'Quotes expire; every live submission needs fresh evidence.',
+      !!q && Number.isFinite(quoteAge) && quoteAge >= -5 && quoteAge <= 30 && Date.parse(q.expiresAt) > now,
+      'Quotes expire; a source or observation timestamp older than 30 seconds cannot authorize execution.',
     ),
     check(
       'SLIPPAGE',

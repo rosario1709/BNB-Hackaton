@@ -1,6 +1,6 @@
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
-import { and, eq, desc } from 'drizzle-orm';
+import { and, eq, desc, or, isNull } from 'drizzle-orm';
 import * as tables from './schema';
 import type { Receipt, Transaction, ApprovalEvidence, Policy } from '../core/domain';
 import { observations } from '../telemetry';
@@ -98,17 +98,37 @@ export async function claimExecution(
 }
 export async function getExecution(owner: string, id: string) {
   if (!process.env.DATABASE_URL) return;
-  return (
+  const row = (
     await db()
       .select()
       .from(tables.executions)
       .where(and(eq(tables.executions.id, id), eq(tables.executions.owner, owner)))
       .limit(1)
-  )[0]?.payload;
+  )[0];
+  return row ? { ...row.payload, transactionHash: row.transactionHash ?? undefined } : undefined;
+}
+export async function bindExecutionHash(owner: string, id: string, hash: string) {
+  if (!process.env.DATABASE_URL) throw new Error('PostgreSQL is required for execution hash binding.');
+  if (!/^0x[0-9a-fA-F]{64}$/.test(hash)) throw new Error('Invalid transaction hash.');
+  const normalized = hash.toLowerCase();
+  const rows = await db().update(tables.executions).set({ transactionHash: normalized })
+    .where(and(eq(tables.executions.id, id), eq(tables.executions.owner, owner),
+      or(isNull(tables.executions.transactionHash), eq(tables.executions.transactionHash, normalized))))
+    .returning({ id: tables.executions.id });
+  if (!rows.length) throw new Error('Execution not found in this session or already bound to a different transaction hash.');
 }
 export async function databaseHealth() {
   if (!process.env.DATABASE_URL) return 'Temporary memory (resets on restart; local use only)';
-  await db().select().from(tables.receipts).limit(1);
+  await Promise.all([
+    db().select().from(tables.intents).limit(1),
+    db().select().from(tables.representations).limit(1),
+    db().select().from(tables.evaluations).limit(1),
+    db().select().from(tables.receipts).limit(1),
+    db().select().from(tables.executions).limit(1),
+    db().select().from(tables.approvals).limit(1),
+    db().select().from(tables.holds).limit(1),
+    db().select().from(tables.telemetry).limit(1),
+  ]);
   return 'PostgreSQL connected';
 }
 export async function saveApproval(owner: string, evidence: ApprovalEvidence, policy: Policy, receiptId: string) {

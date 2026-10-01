@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import Decimal from 'decimal.js';
 import { DemoAdapter } from '../packages/market/demo';
 import { evaluateRoutes } from '../packages/core/router';
 import {
@@ -70,6 +71,24 @@ describe('Router and deterministic risk', () => {
     expect(r.status).toBe('quoted');
     expect(r.candidates.every((c) => !c.simulation)).toBe(true);
   });
+  it('retains quotes with a missing independent reference without bypassing price checks', async () => {
+    const a = new DemoAdapter(), original = a.market.bind(a);
+    a.market = async (r) => ({ ...await original(r), referencePrice: undefined,
+      referenceTimestamp: undefined, referenceIndependent: false, referenceError: 'Independent reference missing.' });
+    a.simulate = () => { throw new Error('MUST NOT CALL'); };
+    const r = await evaluateRoutes(intent({ executionMode: 'quote', allowWhenReferenceStale: true }), a);
+    expect(r.decision).toBe('blocked');
+    expect(r.selectedRouteId).toBeUndefined();
+    expect(r.candidates).toHaveLength(3);
+    for (const candidate of r.candidates) {
+      expect(candidate.quote).toBeDefined();
+      expect(candidate.netOutput).toBeUndefined();
+      expect(candidate.simulation).toBeUndefined();
+      expect(candidate.checks.filter((c) => c.status === 'fail').map((c) => c.code))
+        .toEqual(['REFERENCE', 'FRESHNESS', 'DEVIATION']);
+      expect(candidate.checks.some((c) => c.code === 'SIMULATION')).toBe(false);
+    }
+  });
   it('unknown ticker yields an honest blocked receipt', async () =>
     expect(
       (await evaluateRoutes(intent({ ticker: 'NO_SUCH_TICKER' }), new DemoAdapter())).reason,
@@ -88,25 +107,13 @@ describe('Router and deterministic risk', () => {
     );
   });
   it('normalizes token share multipliers instead of ranking token quantities', async () => {
-    const a = new DemoAdapter(),
-      original = a.quotes.bind(a);
-    a.quotes = async (p, r) => {
-      const quotes = await original(p, r);
-      if (r.provider === 'ondo') {
-        r.sharesPerToken = '2';
-      }
-      return quotes;
-    };
-    const market = a.market.bind(a);
-    a.market = async (r) => {
-      const m = await market(r);
-      if (r.provider === 'ondo') m.onchainPrice = String(Number(m.onchainPrice) * 2);
-      return m;
-    };
-    const r = await evaluateRoutes(intent(), a);
-    expect(r.candidates.find((c) => c.id === r.selectedRouteId)?.representation.provider).toBe(
-      'ondo',
-    );
+    const r = await evaluateRoutes(intent(), new DemoAdapter());
+    const winner = r.candidates.find((c) => c.id === r.selectedRouteId)!;
+    const alternative = r.candidates.find((c) => c.representation.provider === 'bstocks')!;
+    expect(winner.representation.provider).toBe('ondo');
+    expect(winner.representation.sharesPerToken).toBe('2');
+    expect(new Decimal(winner.quote!.expectedAmountOut).lt(alternative.quote!.expectedAmountOut)).toBe(true);
+    expect(new Decimal(winner.netOutput!).gt(alternative.netOutput!)).toBe(true);
   });
   it('sell policy never swaps a different holding', async () => {
     const r = await evaluateRoutes(
@@ -130,6 +137,7 @@ describe('Router and deterministic risk', () => {
     'future-reference',
     'simulation',
     'expired-quote',
+    'stale-quote',
     'missing-gas',
   ] as const)('rejects %s', async (failure) => {
     const p = intent(),
@@ -148,6 +156,7 @@ describe('Router and deterministic risk', () => {
       e.market.referenceTimestamp = new Date(Date.now() + 60000).toISOString();
     if (failure === 'simulation') e.simulation!.success = false;
     if (failure === 'expired-quote') e.quote!.expiresAt = new Date(0).toISOString();
+    if (failure === 'stale-quote') e.quote!.quotedAt = new Date(Date.now() - 31000).toISOString();
     if (failure === 'missing-gas') e.quote!.gasUsd = undefined;
     expect(checkRoute(p, e).some((c) => c.status === 'fail')).toBe(true);
   });

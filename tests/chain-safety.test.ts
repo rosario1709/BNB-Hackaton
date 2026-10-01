@@ -111,7 +111,10 @@ describe('Receipt verification distinguishes chain success from economic correct
     if (['target', 'calldata', 'value', 'sender'].includes(state)) {
       c.getTransaction.mockResolvedValue({ ...transaction, to: state === 'target' ? stock : router,
         from: state === 'sender' ? stock : wallet, input: state === 'calldata' ? '0xdead' : transaction.data, value: state === 'value' ? 1n : 0n });
-      await expect(verifyTransaction(receipt, transaction, hash, asClient(c))).rejects.toThrow('does not match');
+      const result = await verifyTransaction(receipt, transaction, hash, asClient(c));
+      expect(result).toMatchObject({ status: 'confirmed', verification: 'mismatch', chainEvidence: { transactionMatches: false } });
+      expect(result.chainEvidence?.mismatches).toContain(`TRANSACTION_${state === 'sender' ? 'SENDER' : state.toUpperCase()}_MISMATCH`);
+      expect(holdExecution).toHaveBeenCalledWith(wallet, 'TRANSACTION_MISMATCH', hash);
       return;
     }
     const result = await verifyTransaction(receipt, transaction, hash, asClient(c));

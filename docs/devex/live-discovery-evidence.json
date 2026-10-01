@@ -1,5 +1,5 @@
 {
-  "retrievedAt": "2026-10-01T02:21:49.211Z",
+  "retrievedAt": "2026-10-01T08:24:43.217Z",
   "source": "Official Binance Wallet Skill",
   "response": {
     "mode": "live",
@@ -15,19 +15,19 @@
           "decimals": 18,
           "sharesPerToken": "1.0017152487959898",
           "tradable": true,
-          "status": "overnight",
-          "sourceTimestamp": "2026-10-01T02:21:48.154Z",
+          "status": "premarket",
+          "sourceTimestamp": "2026-10-01T08:24:42.446Z",
           "demo": false
         },
         "market": {
           "tokenAddress": "0xa9ee28c80f960b889dfbd1902055218cba016f75",
-          "onchainPrice": "230.154429134544465513",
-          "derivedReferencePrice": "229.760333000000000000395920897157842808693582084992438225202",
-          "referencePrice": "229.800542",
+          "onchainPrice": "230.210859761370138802",
+          "derivedReferencePrice": "229.816667000000000000003394178140031935324150728918240771472",
+          "referencePrice": "229.844167",
           "referenceSource": "Binance Wallet Skill stock feed (source timestamp unavailable)",
           "referenceIndependent": false,
-          "marketStatus": "overnight",
-          "observedAt": "2026-10-01T02:21:48.411Z"
+          "marketStatus": "premarket",
+          "observedAt": "2026-10-01T08:24:42.707Z"
         }
       },
       {
@@ -42,18 +42,18 @@
           "sharesPerToken": "1.0009180758490996",
           "tradable": true,
           "status": "active",
-          "sourceTimestamp": "2026-10-01T02:21:48.156Z",
+          "sourceTimestamp": "2026-10-01T08:24:42.445Z",
           "demo": false
         },
         "market": {
           "tokenAddress": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
           "onchainPrice": "227.987748857223339430457821369468925775",
           "derivedReferencePrice": "227.778630797347320490623101675738093141510563098563923403256",
-          "referencePrice": "229.800542",
+          "referencePrice": "229.844167",
           "referenceSource": "Binance Wallet Skill stock feed (source timestamp unavailable)",
           "referenceIndependent": false,
           "marketStatus": "active",
-          "observedAt": "2026-10-01T02:21:48.666Z"
+          "observedAt": "2026-10-01T08:24:42.958Z"
         }
       },
       {
@@ -68,17 +68,17 @@
           "sharesPerToken": "1.000778223752807865",
           "tradable": true,
           "status": "active",
-          "sourceTimestamp": "2026-10-01T02:21:48.157Z",
+          "sourceTimestamp": "2026-10-01T08:24:42.451Z",
           "demo": false
         },
         "market": {
           "tokenAddress": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
-          "onchainPrice": "230.10893698748311239945",
-          "derivedReferencePrice": "229.93",
+          "onchainPrice": "230.12895255195816855675",
+          "derivedReferencePrice": "229.95",
           "referenceSource": "Binance Wallet Skill stock feed (source timestamp unavailable)",
           "referenceIndependent": false,
           "marketStatus": "active",
-          "observedAt": "2026-10-01T02:21:49.211Z"
+          "observedAt": "2026-10-01T08:24:43.217Z"
         }
       }
     ]

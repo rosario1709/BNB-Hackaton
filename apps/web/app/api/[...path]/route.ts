@@ -13,6 +13,7 @@ import {
   databaseHealth,
   claimExecution,
   getExecution,
+  bindExecutionHash,
   saveApproval, getApproval, updateApproval, holdExecution,
 } from '../../../../../packages/db';
 import { observations, summary } from '../../../../../packages/telemetry';
@@ -76,7 +77,7 @@ async function handle(request: NextRequest, { params }: { params: Promise<{ path
         throw new ApiError('ORIGIN', 'Cross-origin write rejected.', 403);
       const key = owner;
       const now = Date.now();
-      if (limits.size > 2000) for (const [k, v] of limits) if (v.until < now) limits.delete(k);
+      if (limits.size >= 2000) for (const [k, v] of limits) if (v.until <= now) limits.delete(k);
       const limit = limits.get(key);
       if (limit && limit.until > now) {
         if (++limit.count > 20)
@@ -94,17 +95,18 @@ async function handle(request: NextRequest, { params }: { params: Promise<{ path
           mode: cfg.demo ? 'demo' : 'live',
           timestamp: new Date().toISOString(),
         });
-      if (path === 'system/status')
+      if (path === 'system/status') {
+        const persistence = await databaseHealth().catch(() => 'ERROR: PostgreSQL unavailable or migrations missing');
         return send({
           mode: cfg.demo ? 'demo' : 'live',
           liveEnabled: cfg.liveEnabled,
           dataSource: cfg.demo ? 'demo' : cfg.credentials ? 'live' : 'public',
           credentials: cfg.credentials,
-          persistence: await databaseHealth().catch(() => 'ERROR: PostgreSQL unavailable or migrations missing'),
+          persistence,
           readiness: {
             referenceMissing: referenceConfiguration().missing,
             apiCredentials: cfg.credentials,
-            database: cfg.persistent,
+            database: persistence === 'PostgreSQL connected',
             independentReference: referenceConfigured(),
             usdt:
               address.safeParse(process.env.ATLAS_USDT_ADDRESS).success &&
@@ -165,6 +167,7 @@ async function handle(request: NextRequest, { params }: { params: Promise<{ path
           agent: { id: null, runtime: null },
           observations: observations.slice(-30),
         });
+      }
       if (path === 'markets' || path.startsWith('markets/')) {
         const query = z
           .string()
@@ -355,6 +358,7 @@ async function handle(request: NextRequest, { params }: { params: Promise<{ path
         if (!prepared) throw new ApiError('NOT_FOUND', 'Prepared execution not found.', 404);
         const receipt = await getReceipt(owner, prepared.receiptId);
         if (!receipt) throw new ApiError('NOT_FOUND', 'Execution receipt not found.', 404);
+        await bindExecutionHash(owner, input.executionId, input.transactionHash);
         const verified = await verifyTransaction(
           receipt,
           prepared.transaction,

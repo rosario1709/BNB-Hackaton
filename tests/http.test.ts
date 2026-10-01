@@ -19,3 +19,10 @@ it('production readiness reports missing inputs without returning any values', (
   expect(report.status).toBe('NOT READY');
   expect(report.issues).toEqual(expect.arrayContaining(['MISSING_DATABASE_URL', 'MISSING_ALPACA_API_KEY_ID', 'EMPTY_ROUTER_ALLOWLIST', 'LIVE_TRADING_DISABLED', 'INVALID_ATLAS_USDT_ADDRESS', 'INVALID_NEXT_PUBLIC_APP_URL']));
 });
+it('allows a public demo configuration without live credentials while keeping live disabled', () => {
+  const env = { DATABASE_URL: 'postgresql://operator@database.example/atlas', NEXT_PUBLIC_APP_URL: 'https://atlas.example',
+    ATLAS_DEMO_MODE: 'true', ATLAS_LIVE_TRADING_ENABLED: 'false' };
+  expect(productionReadiness(env, 'demo')).toMatchObject({ status: 'CONFIGURATION READY', profile: 'demo', issues: [] });
+  expect(productionReadiness({ ...env, ATLAS_LIVE_TRADING_ENABLED: 'true' }, 'demo').issues).toContain('DEMO_LIVE_TRADING_MUST_BE_DISABLED');
+  expect(productionReadiness(env).issues).toContain('MISSING_ALPACA_API_KEY_ID');
+});

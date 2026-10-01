@@ -14,6 +14,7 @@ import {
   address,
   fromRaw,
   toRaw,
+  txSchema,
   type DataAdapter,
   type Market,
   type Policy,
@@ -427,8 +428,7 @@ export class LiveAdapter implements DataAdapter {
           return [];
         }
 
-        const echoedWallet = quote.userWalletAddress ?? quote.recipient;
-        if ((echoedWallet !== undefined && (typeof echoedWallet !== 'string' || echoedWallet.toLowerCase() !== wallet.toLowerCase())) || BigInt(quote.toTokenAmount) <= 0n) {
+        if ([quote.userWalletAddress, quote.recipient].some((receiver) => receiver !== undefined && receiver.toLowerCase() !== wallet.toLowerCase()) || BigInt(quote.toTokenAmount) <= 0n) {
           fail(new ApiError('QUOTE_MISMATCH', 'Quote recipient or positive output does not match the request.'));
           return [];
         }
@@ -601,6 +601,7 @@ export class LiveAdapter implements DataAdapter {
       routerResult.toTokenAmount !==
         q.amountOutRaw ||
       routerResult.vendorName !== q.vendor ||
+      [routerResult.userWalletAddress, routerResult.recipient].some((receiver) => receiver !== undefined && receiver.toLowerCase() !== wallet.toLowerCase()) ||
       routerResult.fromToken.decimal !== q.inputDecimals ||
       routerResult.toToken.decimal !== q.outputDecimals ||
       routerResult.fromToken.isHoneyPot || routerResult.toToken.isHoneyPot ||
@@ -618,7 +619,8 @@ export class LiveAdapter implements DataAdapter {
         .gt(p.maxSlippageBps) ||
       BigInt(
         tx.minReceiveAmount,
-      ) <
+      ) > BigInt(q.amountOutRaw) ||
+      BigInt(tx.minReceiveAmount) <
         (
           BigInt(q.amountOutRaw) *
           BigInt(
@@ -635,6 +637,7 @@ export class LiveAdapter implements DataAdapter {
     }
     if (Date.now() >= Date.parse(q.expiresAt)) throw new ApiError('QUOTE_EXPIRED', 'Quote expired before simulation. Re-evaluate.');
     q.minReceiveAmountRaw = tx.minReceiveAmount;
+    const exactTransaction = txSchema.parse(tx);
 
     const raw =
       await this.client.call(
@@ -646,19 +649,7 @@ export class LiveAdapter implements DataAdapter {
           binanceChainId:
             '56',
 
-          evmTx: {
-            from:
-              tx.from,
-
-            to:
-              tx.to,
-
-            value:
-              tx.value,
-
-            data:
-              tx.data,
-          },
+          evmTx: exactTransaction,
         },
       );
 
@@ -682,7 +673,7 @@ export class LiveAdapter implements DataAdapter {
               'Simulation changes do not match intended tokens, amounts, or allowance constraints.'
             ),
 
-      transaction: tx,
+      transaction: exactTransaction,
 
       raw,
     };

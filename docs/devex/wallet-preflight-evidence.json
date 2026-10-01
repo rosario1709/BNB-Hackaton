@@ -1,0 +1,34 @@
+{
+  "checkedAt": "2026-10-01T08:42:39.808Z",
+  "status": "NOT READY",
+  "reasons": [
+    "INSUFFICIENT_BNB",
+    "INSUFFICIENT_USDT",
+    "INSUFFICIENT_ALLOWANCE"
+  ],
+  "chainId": 56,
+  "blockNumber": "125070417",
+  "bnb": "0",
+  "gasBudgetBnb": "0.000036",
+  "gasBudgetBasis": "600000 gas units plus 20%; exact transaction estimates still required",
+  "usdt": {
+    "address": "0x55d398326f99059fF775485246999027B3197955",
+    "hasBytecode": true,
+    "probeAmount": "10",
+    "balance": "0",
+    "decimals": 18,
+    "configuredDecimals": 18,
+    "decimalsMatch": true,
+    "hasProbeAmount": false,
+    "allowance": "0",
+    "hasProbeAllowance": false
+  },
+  "spender": {
+    "address": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+    "hasBytecode": true
+  },
+  "notice": "Read-only wallet preflight. READY is not permission to trade; policy, allowlist and exact simulation remain required.",
+  "transactionsBroadcast": 0,
+  "probe": "random public address; not the user wallet",
+  "checkedScope": "BSC RPC reads only; router not authorized"
+}

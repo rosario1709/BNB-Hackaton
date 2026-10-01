@@ -1,5 +1,6 @@
 import Decimal from 'decimal.js';
 import { checkRoute } from './risk';
+import { safeMessage } from './http';
 import { type DataAdapter, type Evaluation, type Receipt, type TradeIntent } from './domain';
 export async function evaluateRoutes(
   intent: TradeIntent,
@@ -97,7 +98,7 @@ export async function evaluateRoutes(
           }
           return evaluated;
         } catch (error) {
-          base.rejectionReasons = [error instanceof Error ? error.message : 'Candidate failed'];
+          base.rejectionReasons = [safeMessage(error, 'Candidate data unavailable.')];
           base.checks = [
             {
               code: 'ADAPTER',

@@ -23,6 +23,7 @@ const serviceSchema = z.object({
   timestamp: z.iso.datetime(),
   source: z.string().min(1),
   independent: z.literal(true),
+  exchange: z.string().min(1).optional(),
 });
 
 const alpacaSchema = z.object({
@@ -58,7 +59,7 @@ export async function independentReference(
   try {
     if (provider === 'service' && settings.url) {
       const url = new URL(settings.url);
-      if (url.protocol !== 'https:') throw new Error('Reference service must use HTTPS');
+      if (url.protocol !== 'https:' || url.username || url.password) throw new Error('Reference service must use HTTPS without credentials in its URL');
       url.searchParams.set('ticker', ticker);
       const response = await transport(url, {
         headers: settings.token ? { Authorization: `Bearer ${settings.token}` } : {},
@@ -75,7 +76,7 @@ export async function independentReference(
         price: reference.price,
         timestamp: reference.timestamp,
         source: reference.source,
-        currency: 'USD', exchange: 'Operator reference service', independent: true,
+        currency: 'USD', exchange: reference.exchange ?? 'Operator reference service', independent: true,
       };
     }
 

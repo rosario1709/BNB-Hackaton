@@ -161,6 +161,9 @@ if (process.argv.includes('--simulate')) {
   }
 }
 const evidence = {
+  status: results.some((result) => result.status === 'fulfilled' && result.value.length > 0) &&
+    (!process.argv.includes('--simulate') || simulationProbe?.result === 'passed') &&
+    (!process.argv.includes('--approval') || approvalProbe?.result === 'matched') ? 'PROBES PASSED' : 'READINESS BLOCKED',
   checkedAt: new Date().toISOString(),
   ticker: policy.ticker,
   amount: policy.amount,
@@ -181,3 +184,4 @@ if (results.some((result) => result.status === 'fulfilled' && result.value.lengt
 } else {
   process.exitCode = 1;
 }
+if (evidence.status === 'READINESS BLOCKED') process.exitCode = 1;
