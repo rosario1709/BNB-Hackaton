@@ -1,0 +1,66 @@
+{
+  "checkedAt": "2026-10-01T02:22:12.317Z",
+  "ticker": "NVDA",
+  "representations": 2,
+  "markets": [
+    {
+      "symbol": "NVDAB",
+      "provider": "bstocks",
+      "status": "active",
+      "tradable": true,
+      "result": "verified",
+      "hasOnchainPrice": true,
+      "hasSourceTimestamp": true,
+      "hasIndependentReference": false
+    },
+    {
+      "symbol": "NVDAon",
+      "provider": "ondo",
+      "status": "overnight",
+      "tradable": true,
+      "result": "verified",
+      "hasOnchainPrice": true,
+      "hasSourceTimestamp": true,
+      "hasIndependentReference": false
+    }
+  ],
+  "operations": [
+    {
+      "module": "RWA",
+      "operation": "/api/v1/dex/market/rwa/search",
+      "httpStatus": 200,
+      "success": true
+    },
+    {
+      "module": "RWA",
+      "operation": "/api/v1/dex/market/rwa/tokens",
+      "httpStatus": 200,
+      "success": true
+    },
+    {
+      "module": "RWA",
+      "operation": "/api/v1/dex/market/rwa/underlying-market",
+      "httpStatus": 200,
+      "success": true
+    },
+    {
+      "module": "Market",
+      "operation": "/api/v1/dex/market/rwa/price",
+      "httpStatus": 200,
+      "success": true
+    },
+    {
+      "module": "Market",
+      "operation": "/api/v1/dex/market/rwa/price",
+      "httpStatus": 200,
+      "success": true
+    },
+    {
+      "module": "RWA",
+      "operation": "/api/v1/dex/market/rwa/underlying-market",
+      "httpStatus": 200,
+      "success": true
+    }
+  ],
+  "transactionsBroadcast": 0
+}

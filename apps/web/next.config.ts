@@ -10,6 +10,7 @@ const config: NextConfig = {
   poweredByHeader: false,
   devIndicators: false,
   turbopack: { root: path.resolve(process.cwd(), '../..') },
+  outputFileTracingRoot: path.resolve(process.cwd(), '../..'),
   async headers() {
     return [
       {

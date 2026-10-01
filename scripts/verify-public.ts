@@ -40,8 +40,13 @@ await Promise.all([
       {
         verifiedAt: new Date().toISOString(),
         publicWalletSkill: 'WORKING',
-        authenticatedWeb3: 'NOT CONFIGURED',
-        agenticWallet: 'NOT CONFIGURED',
+        authenticatedWeb3:
+          process.env.BINANCE_WEB3_API_KEY && process.env.BINANCE_WEB3_API_SECRET
+            ? 'CONFIGURED; not checked by public verification'
+            : 'NOT CONFIGURED',
+        agenticWallet: process.env.ATLAS_BAW_EXECUTABLE
+          ? 'CONFIGURED; authorization not verified'
+          : 'NOT CONFIGURED',
         agentStudio: 'NOT DEPLOYED',
         transactionsBroadcast: 0,
       },

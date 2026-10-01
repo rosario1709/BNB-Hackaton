@@ -43,15 +43,15 @@ export function checkRoute(p: Policy, e: Evaluation, now = Date.now()): RiskChec
     check(
       'TRADABLE',
       'Trading status',
-      r.tradable && !['pause', 'halted', 'paused', 'unknown'].includes(r.status),
+      r.tradable && !['', 'pause', 'halted', 'paused', 'unknown'].includes(r.status.toLowerCase()),
       'Only representations with a verified tradable status pass.',
       r.status,
     ),
     check(
       'REFERENCE',
       'Independent reference',
-      !!m.referencePrice && new Decimal(m.referencePrice).gt(0),
-      'An independent per-share price is required; token-derived prices cannot satisfy this check.',
+      m.referenceIndependent === true && !!m.referencePrice && new Decimal(m.referencePrice).gt(0),
+      m.referenceError ?? 'An independent per-share price is required; token-derived or unverified public prices cannot satisfy this check.',
       m.referenceSource ?? 'Missing',
     ),
     check(

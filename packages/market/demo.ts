@@ -57,6 +57,8 @@ export class DemoAdapter implements DataAdapter {
         Date.now() - (this.scenario === 'stale-reference' ? 64000000 : 30000),
       ).toISOString(),
       referenceSource: 'Fictional demo reference',
+      referenceIndependent: true,
+      referenceCurrency: 'USD',
       marketStatus: this.scenario === 'stale-reference' ? 'closed' : 'regular',
       observedAt: new Date().toISOString(),
     };
@@ -76,6 +78,7 @@ export class DemoAdapter implements DataAdapter {
         inputToken: p.side === 'buy' ? 'DEMO:USDT' : r.tokenAddress,
         outputToken: p.side === 'buy' ? r.tokenAddress : 'DEMO:USDT',
         amountIn: p.amount,
+        inputDecimals: 18,
         amountInRaw: toRaw(p.amount, 18),
         expectedAmountOut: fromRaw(raw, 18),
         amountOutRaw: raw,

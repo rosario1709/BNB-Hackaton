@@ -1,8 +1,8 @@
 import { createServer } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
-import { policySchema, address } from '../core/domain';
 import { z } from 'zod';
-import { evaluate } from './service';
+import { agentReportRequest, evaluate } from './service';
+import { safeMessage } from '../core/http';
 const token = process.env.ATLAS_AGENT_TOKEN;
 if (!token || token.length < 32)
   throw new Error('Set ATLAS_AGENT_TOKEN to a random secret of at least 32 characters.');
@@ -44,9 +44,7 @@ const server = createServer(async (req, res) => {
         return;
       }
     }
-    const parsed = z
-      .object({ policy: policySchema, wallet: address.optional() })
-      .parse(JSON.parse(body));
+    const parsed = agentReportRequest.parse(JSON.parse(body));
     if (parsed.policy.executionMode === 'live') {
       reply(400, { error: 'Intelligence reports cannot broadcast. Use quote or simulate.' });
       return;
@@ -58,7 +56,7 @@ const server = createServer(async (req, res) => {
         e instanceof z.ZodError
           ? 'Invalid policy'
           : e instanceof Error
-            ? e.message
+            ? safeMessage(e)
             : 'Report unavailable',
     });
   } finally {

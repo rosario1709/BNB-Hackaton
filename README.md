@@ -2,6 +2,8 @@
 
 **One intent. Every market. Best execution.**
 
+[Guía integral del proyecto en español](docs/ATLAS_PROJECT_GUIDE.md): arquitectura, flujos, configuración, mejoras, evidencia y pasos para la primera operación real.
+
 Autonomous Tokenized Liquidity & Allocation System — an execution workspace for tokenized equities on BNB Smart Chain, built for **BNB Hack: Tokenized Stocks Edition 2026**.
 
 ## Problem
@@ -60,7 +62,7 @@ flowchart TD
     N --> S[Binance EVM transaction simulation]
     N --> RFQ[RFQ: execution blocked without settlement simulation]
     S --> R[Deterministic policy checks]
-    REF[Independent timestamped reference service] --> R
+    REF[Independent timestamped reference: service or Alpaca IEX] --> R
     R -->|Fail| B[Blocked receipt]
     R -->|Pass| C[Explicit user confirmation + fresh recheck]
     C --> W[Browser wallet / local Agentic Wallet bridge]
@@ -83,12 +85,13 @@ Live mode additionally requires an operator-enabled feature flag, verified USDT 
 
 | Integration                              | Implementation                                                                                  | Verified runtime status                                                                                                                           |
 | ---------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Public tokenized-securities Wallet Skill | Implemented: discovery, issuer metadata, per-asset status, dynamic market data                  | **WORKING**: real NVDA representations from Ondo, xStocks, bStocks retrieved on 2026-09-29; evidence in `docs/devex/live-discovery-evidence.json` |
-| Authenticated RWA API                    | Implemented: search, token list, underlying market, prices                                      | **NOT CONFIGURED**: no API credentials; typed adapters only                                                                                       |
-| Market API                               | Implemented RWA price adapter                                                                   | **NOT CONFIGURED**; public Skill prices work separately                                                                                           |
-| Trading API                              | Implemented quotes and SWAP construction; RFQ quotes retained                                   | **PARTIAL**: no authenticated call exercised; RFQ signing intentionally blocked                                                                   |
-| Transaction API                          | Implemented exact-transaction simulation and predicted-flow checks                              | **NOT CONFIGURED**: no authenticated simulation exercised                                                                                         |
-| Wallet API                               | Implemented address balances                                                                    | **NOT CONFIGURED**                                                                                                                                |
+| Public tokenized-securities Wallet Skill | Implemented: discovery, issuer metadata, per-asset status, dynamic market data                  | **WORKING**: real NVDA representations from Ondo, xStocks, bStocks retrieved on 2026-09-30; evidence in `docs/devex/live-discovery-evidence.json` |
+| Authenticated RWA API                    | Implemented: search, token list, underlying market, prices                                      | **READ VERIFIED** on 2026-09-30 with local API credentials; evidence in `docs/devex/authenticated-read-evidence.json`                             |
+| Market API                               | Implemented RWA price adapter                                                                   | **READ VERIFIED** on 2026-09-30 for NVDAon and NVDAB                                                                                              |
+| Independent equity reference             | Generic HTTPS source or optional Alpaca IEX latest trade with source timestamp                  | **NOT CONFIGURED** locally; tests verify parsing and fail-closed behavior                                                                         |
+| Trading API                              | Implemented quotes and SWAP construction; RFQ quotes retained                                   | **QUOTE + BUILD VERIFIED** on 2026-09-30 with an unfunded probe address; no signing or broadcast                                                  |
+| Transaction API                          | Implemented exact-transaction simulation and predicted-flow checks                              | **API REACHED**: unfunded probe simulation returned a failed result; funded success is unverified                                                 |
+| Wallet API                               | Implemented address balances                                                                    | **NOT VERIFIED**: no wallet address supplied                                                                                                      |
 | Agentic Wallet                           | Implemented local status/balance/settings, preview, interactive SWAP execution and verification | **PARTIAL**: no authenticated wallet installed/configured in this session                                                                         |
 | BNB Agent Studio                         | Implemented `runWork` report hook against the documented seller interface                       | **PARTIAL**: no generated seller deployment, ERC-8004 identity, or live ERC-8183 task                                                             |
 | x402 / b402                              | Official V2 payment flow investigated; separate from core trade path                            | **NOT CONFIGURED / Planned**: payment serving is not implemented                                                                                  |
@@ -123,7 +126,7 @@ See [docs/AGENT_STUDIO.md](docs/AGENT_STUDIO.md) for the verified install/scaffo
 pnpm agent
 ```
 
-It listens on loopback port 8080, exposes authenticated `POST /best-execution` with `{ "policy": {...}, "wallet": "0x..." }`, bounds concurrent work, and cannot broadcast.
+It listens on loopback port 8080, exposes authenticated `POST /best-execution`, bounds concurrent work, and cannot broadcast. Both this endpoint and the web app's `POST /api/agent/best-execution` accept either a direct policy JSON (used by the Studio hook and built-in console) or `{ "policy": {...}, "wallet": "0x..." }` for wallet-bound quotes.
 
 ## Safety architecture
 
@@ -131,8 +134,10 @@ It listens on loopback port 8080, exposes authenticated `POST /best-execution` w
 - Decimal strings and bigint for token amounts; conservative rounding for basis points.
 - Final risk filters enforce tradability, independent reference, timestamp freshness, spot and execution deviation, price impact, slippage cap, gas availability, quote freshness, and simulation.
 - Buy ranking is net underlying shares; sell ranking is net USDT proceeds. Sell routes must match the selected token holding.
+- The mainnet cap compares the exact USDT input for buys; sells use the independent reference value of the selected holding.
 - Simulated debits must match the input amount. Output must meet minimum receive. Unrelated token drains and allowance mutations fail.
 - Pre-sign re-evaluation cannot silently change the chosen issuer/vendor or reduce output beyond the confirmed slippage policy.
+- If allowance is missing, the user may prepare an exact-input ERC-20 approval. ATLAS validates Binance's approval calldata against the signed quote, checks the on-chain allowance and an operator-reviewed spender allowlist, and requires a separate wallet confirmation. A fresh quote and simulation are required after approval confirms.
 - Signing is user controlled; unsigned transaction preparation is not called a completed trade.
 - RPC verification matches sender, target, value, and calldata before recording chain confirmation. Reverted transactions disclose that gas may have been spent.
 - Secrets stay server-side; telemetry records endpoint identifiers, timing and sanitized categories, never headers or signed payloads.
@@ -147,6 +152,7 @@ All supported variables are in [.env.example](.env.example). Main requirements:
 | `BINANCE_WEB3_API_KEY`, `BINANCE_WEB3_API_SECRET` | [Binance Web3 Developer Portal](https://web3.binance.com/en/dev-portal/project) project credentials  |
 | `DATABASE_URL`                                    | Standard PostgreSQL connection string from your database provider                                    |
 | `ATLAS_REFERENCE_URL`, `ATLAS_REFERENCE_TOKEN`    | Your licensed independent USD equity-reference service; timestamp contract in `docs/INTEGRATIONS.md` |
+| `ALPACA_API_KEY_ID`, `ALPACA_API_SECRET_KEY`       | Optional [Alpaca Market Data](https://docs.alpaca.markets/us/reference/stocklatesttradesingle-1) IEX latest trade reference when no custom reference URL is set |
 | `ATLAS_USDT_ADDRESS`, `ATLAS_USDT_DECIMALS`       | Operator-verified BSC USDT contract and token precision; no hard-coded example contract              |
 | `ATLAS_ALLOWED_ROUTERS`                           | Operator-reviewed router contracts from verified official routes                                     |
 | `BSC_RPC_URL`                                     | BSC mainnet JSON-RPC endpoint; default official public RPC                                           |
@@ -168,6 +174,12 @@ pnpm test:e2e
 pnpm build
 ```
 
+With Binance credentials configured, `pnpm verify:authenticated` checks signed read endpoints. After setting an operator-reviewed BSC USDT contract and decimals, `pnpm verify:quote --simulate --approval` checks quote, exact-input approval calldata, unsigned SWAP build, and simulation endpoints with a random unfunded address. Set `ATLAS_QUOTE_PROBE_WALLET` only to a public address to bind the probe to that wallet. The probe never signs or broadcasts; a failed simulation with an unfunded address is expected and does not establish mainnet execution readiness. Sanitized evidence is written to `docs/devex/`.
+
+`pnpm verify:reference` checks the configured independent price feed and its source timestamp against the default five-minute limit. It does not move funds. A stale result outside US stock trading hours is expected.
+
+`pnpm verify:wallet <public-BSC-address> 10 [quote-approve-target]` reads BNB, USDT, the USDT contract's actual decimals, and optionally the exact spender allowance at one BSC block. It prints the public address and balances locally without saving them to the repository; it does not sign or broadcast.
+
 Tests cover policy parsing, monetary precision, reference math, normalization, risk rejection, candidate isolation, simulation-only execution boundaries, official response schemas, and receipt ownership. Browser tests cover all eight pages at desktop/mobile widths, successful races, strict policy blocks, stale references, simulation failures, invalid input, and disconnected wallets. External calls are never represented by unit-test telemetry.
 
 ## Deployment
@@ -180,7 +192,7 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). The web app is compatible with a V
 
 ## Mainnet readiness
 
-**NOT READY in the delivered environment.** Credentials, PostgreSQL, reference timestamps, router/USDT verification, an authenticated funded wallet, and end-to-end authenticated API validation are outstanding. RFQ execution needs a supported settlement-simulation strategy and is blocked in this version. Existing token allowance is required for live SWAP; ATLAS does not automatically grant approvals.
+**NOT READY in the delivered environment.** Local API credentials passed authenticated read, quote, exact-input approval build, unsigned SWAP build, and simulation-endpoint checks. A persistent local PostgreSQL instance is configured and migrated; no production database is configured. At the BSC check on 2026-09-30 16:38 UTC, the supplied public wallet had zero USDT, zero BNB, and zero allowance for the quoted spender. An independent timestamped reference, operator-reviewed spender/router settings, a funded wallet, and a successful funded SWAP simulation remain outstanding. RFQ execution needs a supported settlement-simulation strategy and is blocked in this version. ATLAS can prepare a limited approval for explicit wallet confirmation; it never grants an allowance automatically.
 
 Mainnet execution moves real assets. Review the route and confirm before proceeding. Tokenized securities may have issuer, liquidity, smart-contract, market-hours and jurisdictional risks.
 

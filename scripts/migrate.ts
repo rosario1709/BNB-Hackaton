@@ -1,12 +1,13 @@
 import postgres from 'postgres';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 if (!process.env.DATABASE_URL) throw new Error('Set DATABASE_URL before migrating');
 const sql = postgres(process.env.DATABASE_URL, { max: 1 });
 try {
   await sql.begin(async (tx) => {
-    await tx.unsafe(await readFile('packages/db/migrations/0001_initial.sql', 'utf8'));
+    for (const file of (await readdir('packages/db/migrations')).filter((v) => /^\d+.*\.sql$/.test(v)).sort())
+      await tx.unsafe(await readFile(`packages/db/migrations/${file}`, 'utf8'));
   });
-  console.log('Migration 0001 applied');
+  console.log('All idempotent migrations applied.');
 } finally {
   await sql.end();
 }

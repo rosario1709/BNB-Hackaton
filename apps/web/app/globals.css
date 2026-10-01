@@ -1904,3 +1904,9 @@ footer > span:last-child {
 .portfolio-summary small {
   font-size: 9px;
 }
+.evidence-badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; }
+.route-contract, .route-source { padding: 0 18px; overflow-wrap: anywhere; font-size: 10px; }
+.route-source { color: var(--muted); line-height: 1.6; }
+.route-card dd, .timeline p, .integration-card small { overflow-wrap: anywhere; }
+.integration-card small { display: block; margin-top: 8px; color: var(--muted); font-size: 10px; }
+.judge-intro { max-width: 780px; font-size: 17px; line-height: 1.7; }

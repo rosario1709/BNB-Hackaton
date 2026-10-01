@@ -52,6 +52,10 @@ export interface Market {
   referencePrice?: string;
   referenceTimestamp?: string;
   referenceSource?: string;
+  referenceIndependent?: boolean;
+  referenceCurrency?: 'USD';
+  referenceExchange?: string;
+  referenceError?: string;
   marketStatus: string;
   nextMarketOpen?: string;
   observedAt: string;
@@ -62,6 +66,11 @@ export interface Quote {
   executionMode: 'SWAP' | 'RFQ';
   inputToken: string;
   outputToken: string;
+  approveTarget?: string | null;
+  recipient?: string;
+  inputDecimals?: number;
+  minReceiveAmountRaw?: string;
+  tradeFeeUsd?: string;
   amountIn: string;
   amountInRaw: string;
   expectedAmountOut: string;
@@ -125,6 +134,13 @@ export interface Receipt {
   transactionHash?: string;
   actualAmountOut?: string;
   verification?: 'pending' | 'passed' | 'mismatch';
+  approval?: ApprovalEvidence;
+  executionTransaction?: Transaction;
+  chainEvidence?: {
+    chainId: 56; blockNumber: string; blockHash: string; inputDebitRaw: string;
+    outputCreditRaw: string; minimumOutputRaw: string;
+    transfers: { token: string; from: string; to: string; amountRaw: string; logIndex: number }[];
+  };
   blockExplorerUrl?: string;
   reason: string;
   createdAt: string;
@@ -135,7 +151,14 @@ export interface DataAdapter {
   discover(query: string): Promise<Representation[]>;
   market(r: Representation): Promise<Market>;
   quotes(p: Policy, r: Representation, wallet?: string): Promise<Quote[]>;
+  quoteFailures?(r: Representation): { vendor: string; reason: string }[];
   simulate(p: Policy, r: Representation, q: Quote, wallet?: string): Promise<Simulation>;
+}
+export interface ApprovalEvidence {
+  id: string; status: 'prepared' | 'pending' | 'confirmed' | 'reverted' | 'mismatch';
+  token: string; spender: string; amountRaw: string; wallet: string;
+  transaction: Transaction; transactionHash?: string; blockNumber?: string;
+  allowanceRaw?: string; verifiedAt?: string;
 }
 export const scenarioSchema = z.enum([
   'successful-best-execution',

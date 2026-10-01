@@ -1,0 +1,99 @@
+{
+  "checkedAt": "2026-10-01T02:23:08.232Z",
+  "source": "BSC JSON-RPC plus saved Binance signed quote evidence (compare timestamps)",
+  "quoteEvidence": {
+    "checkedAt": "2026-10-01T02:22:24.348Z",
+    "ticker": "NVDA",
+    "amount": "10",
+    "probeWallet": "random-unfunded",
+    "routes": [
+      {
+        "symbol": "NVDAB",
+        "provider": "bstocks",
+        "result": "verified",
+        "rejectedVendors": [],
+        "quoteCount": 1,
+        "vendors": [
+          {
+            "vendor": "LiquidMesh",
+            "executionMode": "SWAP",
+            "quoteId": "d9f2dc95482545b8b5a0263e62649932",
+            "tokenIn": "0x55d398326f99059fF775485246999027B3197955",
+            "tokenOut": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+            "amountInRaw": "10000000000000000000",
+            "amountOutRaw": "43447253483899554",
+            "inputDecimals": 18,
+            "outputDecimals": 18,
+            "quotedAt": "2026-10-01T02:22:22.439Z",
+            "expiresAt": "2026-10-01T02:22:47.439Z",
+            "minReceiveAmountRaw": "43230017216480056",
+            "tradeFeeUsd": "0.01991991",
+            "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+          }
+        ]
+      },
+      {
+        "symbol": "NVDAon",
+        "provider": "ondo",
+        "result": "verified",
+        "rejectedVendors": [],
+        "quoteCount": 1,
+        "vendors": [
+          {
+            "vendor": "LiquidMesh",
+            "executionMode": "SWAP",
+            "quoteId": "a065da276cac405a8e895919995ad6a0",
+            "tokenIn": "0x55d398326f99059fF775485246999027B3197955",
+            "tokenOut": "0xa9ee28c80f960b889dfbd1902055218cba016f75",
+            "amountInRaw": "10000000000000000000",
+            "amountOutRaw": "43440073769296048",
+            "inputDecimals": 18,
+            "outputDecimals": 18,
+            "quotedAt": "2026-10-01T02:22:22.439Z",
+            "expiresAt": "2026-10-01T02:22:47.439Z",
+            "minReceiveAmountRaw": "43222873400449567",
+            "tradeFeeUsd": "0.02019375",
+            "approveTarget": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5"
+          }
+        ]
+      }
+    ],
+    "simulationProbe": {
+      "symbol": "NVDAB",
+      "result": "failed",
+      "kind": "binance",
+      "router": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+      "routerHasCode": true,
+      "rpcChainId": 56
+    },
+    "approvalProbe": {
+      "result": "matched",
+      "token": "0x55d398326f99059fF775485246999027B3197955",
+      "spender": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+      "amountRaw": "10000000000000000000"
+    },
+    "transactionsBroadcast": 0
+  },
+  "contracts": [
+    {
+      "address": "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+      "chainId": 56,
+      "blockNumber": "125019827",
+      "hasBytecode": true,
+      "bytecodeHash": "0xb6f35276cf3608595df59a3cfa5fb06a3309e64e387b0ea4f60875fdc4c696a0",
+      "proxyDetection": "No recognized marker; custom proxies are not excluded",
+      "storageReadFailures": 0,
+      "status": "OPERATOR REVIEW REQUIRED",
+      "review": [
+        "Verify official vendor deployment/provenance",
+        "Review source, implementation and upgrade/admin permissions",
+        "Compare quote spender, token addresses and built tx.to",
+        "Review allowance scope and risk before editing ATLAS_ALLOWED_ROUTERS"
+      ],
+      "explorer": "https://bscscan.com/address/0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5#code"
+    }
+  ],
+  "status": "OPERATOR REVIEW REQUIRED",
+  "allowlistChanged": false,
+  "transactionsBroadcast": 0
+}

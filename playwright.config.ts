@@ -4,12 +4,12 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   timeout: 45000,
-  use: { baseURL: 'http://localhost:3000', trace: 'retain-on-failure' },
+  use: { baseURL: 'http://localhost:3100', trace: 'retain-on-failure' },
   webServer: {
-    command: 'pnpm dev',
-    url: 'http://localhost:3000/api/health',
-    reuseExistingServer: !process.env.CI,
-    env: { ATLAS_DEMO_MODE: 'true' },
+    command: 'pnpm --filter @atlas/web dev --port 3100',
+    url: 'http://localhost:3100/api/health',
+    reuseExistingServer: false,
+    env: { ATLAS_DEMO_MODE: 'true', ATLAS_LIVE_TRADING_ENABLED: 'false', DATABASE_URL: '' },
   },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },

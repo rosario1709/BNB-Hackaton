@@ -1,15 +1,15 @@
-# Four-minute demonstration
+# Three-minute judge demonstration
 
-**0:00 — The problem.** Open the command center. Explain that tokenized stock representations have different routes, share multipliers, costs and trading states. The user's exposure is fixed; ATLAS optimizes its execution.
+Before presenting: open `/judge`, `/markets`, `/receipts` and `/system`. Use `ATLAS_DEMO_MODE=true`, `ATLAS_LIVE_TRADING_ENABLED=false` for a reproducible presentation without spending. Public discovery remains available separately. If demonstrating live data, label it and use the actual results; never substitute fictional candidates after an API failure. Do not try to complete two wallet transactions inside a timed pitch.
 
-**0:25 — Real discovery.** On Markets, search `NVDA` and select Live discovery. Inspect contracts, issuers and token/share prices. Mention the independently labeled data source and missing stock-price timestamp. This demonstrates actual integration without pretending that discovery is a completed trade.
+| Time | Action and words to say |
+| --- | --- |
+| 0:00–0:20 | Show the ATLAS hero. **“NVDA is not necessarily one token on-chain. Multiple issuers can represent the same underlying stock using different token units and execution routes.”** |
+| 0:20–0:40 | Show the intent: **“Buy $10 of NVIDIA. Maximum slippage 0.5%. Maximum reference deviation 1%.”** Point to the editable limits. Say **“The user has already chosen the investment and the amount.”** |
+| 0:40–1:20 | Select **Best execution** and **Simulate routes**. Say **“These are clearly marked DEMO DATA scenarios; no funds move. ATLAS normalizes every representation into underlying stock exposure.”** Point to Ondo, bStocks and xStocks, shares/token, normalized shares, costs and net output. Public Markets discovery can show actual listed contracts; authenticated quotes may cover a different subset. |
+| 1:20–1:55 | Expand the rejected route's checks. Show reference/source time, deviation and simulation. Say **“This route failed the user's limit. A token-derived price is not an independent stock reference. In live mode, missing or stale evidence blocks the route.”** The demo reference is fictional; Alpaca must be configured and live-tested before claiming a real independent quote. |
+| 1:55–2:30 | Point to **WHY THIS ROUTE WON** and the winning net exposure. Say **“ATLAS is not choosing what to invest in. It is choosing how to execute an intent the user already provided.”** Optionally select **Policy block** to show a refusal and its receipt. |
+| 2:30–2:50 | If a real verified trade exists, show its BscScan transaction and receipt with `confirmed` plus `verification=passed`, exact input debit and output. Otherwise point to **NO VERIFIED MAINNET TRADE RECORDED YET** and say **“Real reads, quotes and exact approval construction are verified. Wallet funding, the independent feed and operator router approval remain required before the user signs.”** |
+| 2:50–3:00 | Close: **“ATLAS evaluates and prepares. The user's wallet signs. One intent. Every market. Best execution.”** |
 
-**1:00 — Simulation Race.** Open Judge mode with demo trading enabled. Read the DEMO DATA banner aloud. Run the $10 scenario. Show the editable policy and the winning normalized output. Expand xStocks' failed reference-deviation check.
-
-**1:50 — Refusal.** Select Policy block and rerun. The 1 bps policy excludes every fictional candidate. Funds moved: NO. Then demonstrate the stale-reference scenario if time permits.
-
-**2:30 — Auditability.** Open receipts and export the entire policy, quote, market, simulation and risk evidence. Visit System to distinguish successful public API observations from unconfigured authenticated modules.
-
-**3:00 — Agent boundary.** Show the authenticated report API and Agentic Wallet bridge. Explain that the report service cannot sign. Studio runWork produces the report; official Studio signing owns job settlement. Registration is not claimed until deployed.
-
-**3:35 — Honest readiness.** If authenticated live execution has actually been validated, show its real BscScan receipt. Otherwise state the precise outstanding configuration and RFQ-simulation limitations. Do not substitute a demo hash or claim deployment that has not occurred.
+For follow-up questions: `/system` separates configuration from measured API responses; `/receipts` exports full evidence; `/agent` demonstrates a bearer-authenticated report API. RFQ execution, Studio deployment/identity and b402 payments are not claimed. The additional **Stale reference** and **Simulation failure** scenarios are available on `/judge` and `/trade`.

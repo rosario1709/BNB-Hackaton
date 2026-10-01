@@ -1,7 +1,7 @@
 {
-  "verifiedAt": "2026-09-29T10:19:36.687Z",
+  "verifiedAt": "2026-10-01T02:21:49.211Z",
   "publicWalletSkill": "WORKING",
-  "authenticatedWeb3": "NOT CONFIGURED",
+  "authenticatedWeb3": "CONFIGURED; not checked by public verification",
   "agenticWallet": "NOT CONFIGURED",
   "agentStudio": "NOT DEPLOYED",
   "transactionsBroadcast": 0

@@ -1,13 +1,44 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { createHmac } from 'node:crypto';
 import { BinanceClient, signature } from '../packages/binance-web3/client';
-import { quotesSchema, simulationSchema } from '../packages/binance-web3/schemas';
+import { quotesSchema, quoteBatchSchema, simulationSchema } from '../packages/binance-web3/schemas';
 import fixture from './fixtures/official-shape/quote.json';
-import { simulationMatches } from '../packages/market/live';
+import { LiveAdapter, normalizeMarketStatus, simulationMatches } from '../packages/market/live';
 import { DemoAdapter } from '../packages/market/demo';
 import { policySchema } from '../packages/core/domain';
 afterEach(() => vi.restoreAllMocks());
 describe('Official adapters', () => {
+  it('isolates malformed vendor schemas and retains a rejection reason', () => {
+    const result = quoteBatchSchema.parse([{ vendorName: 'Broken vendor', toTokenAmount: 'nonsense' }, fixture.data[0]]);
+    expect(result.routes).toHaveLength(1);
+    expect(result.rejected[0]).toMatchObject({ vendor: 'Broken vendor', reason: expect.stringContaining('MALFORMED_QUOTE') });
+  });
+  it.each(['amount', 'token', 'decimals', 'recipient', 'zero-output'])('rejects quote %s inconsistency without losing a valid vendor', async (problem) => {
+    const old = process.env.ATLAS_USDT_ADDRESS;
+    process.env.ATLAS_USDT_ADDRESS = fixture.data[0].fromToken.tokenContractAddress;
+    try {
+      const bad = structuredClone(fixture.data[0]) as typeof fixture.data[0] & { recipient?: string };
+      bad.quoteId = 'bad-vendor';
+      if (problem === 'amount') bad.fromTokenAmount = '1';
+      if (problem === 'token') bad.toToken.tokenContractAddress = bad.fromToken.tokenContractAddress;
+      if (problem === 'decimals') bad.toToken.decimal = '6';
+      if (problem === 'recipient') bad.recipient = fixture.data[0].fromToken.tokenContractAddress;
+      if (problem === 'zero-output') bad.toTokenAmount = '0';
+      const adapter = new LiveAdapter(new BinanceClient({ key: 'key', secret: 'secret' }, vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: 0, data: [bad, fixture.data[0]] })))));
+      const representation = (await new DemoAdapter().discover('NVDA'))[0];
+      representation.tokenAddress = fixture.data[0].toToken.tokenContractAddress;
+      expect(await adapter.quotes(policySchema.parse({ ticker: 'NVDA', amount: '10' }), representation, '0x3333333333333333333333333333333333333333')).toHaveLength(1);
+      expect(adapter.quoteFailures(representation)).toHaveLength(1);
+    } finally { if (old === undefined) delete process.env.ATLAS_USDT_ADDRESS; else process.env.ATLAS_USDT_ADDRESS = old; }
+  });
+  it('treats an explicit TRADING state as active when marketStatus is null', () => {
+    expect(
+      normalizeMarketStatus({ marketStatus: null, openState: true, reasonCode: 'TRADING' }),
+    ).toBe('active');
+    expect(normalizeMarketStatus({ marketStatus: null, openState: true, reasonCode: null })).toBe(
+      'unknown',
+    );
+  });
   it('signs encoded path with build prefix', () => {
     const actual = signature(
       'secret',
@@ -33,13 +64,20 @@ describe('Official adapters', () => {
     ).rejects.toMatchObject({ code: '40374' });
   });
   it('rejects malformed upstream data', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const sensitiveValue = 'private-wallet-balance-marker';
     const client = new BinanceClient(
       { key: 'key', secret: 'secret' },
-      vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: 0, data: [{ fake: true }] }))),
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ code: 0, data: [{ fake: sensitiveValue }] })),
+        ),
     );
     await expect(
       client.call('Trading', '/api/v1/dex/aggregator/quote', quotesSchema),
     ).rejects.toMatchObject({ code: 'MALFORMED_RESPONSE' });
+    expect(JSON.stringify(log.mock.calls)).not.toContain(sensitiveValue);
   });
   it('missing credentials never calls network', async () => {
     const fetch = vi.fn();
@@ -56,6 +94,33 @@ describe('Official adapters', () => {
     expect(fetch.mock.calls[0][0]).toBe(
       'https://web3.binance.com/build/api/v1/dex/aggregator/quote?keyword=A%20B',
     );
+  });
+  it('keeps a valid vendor quote when another vendor returns an unsafe route', async () => {
+    const previousUsdt = process.env.ATLAS_USDT_ADDRESS;
+    process.env.ATLAS_USDT_ADDRESS = fixture.data[0].fromToken.tokenContractAddress;
+    try {
+      const valid = fixture.data[0];
+      const unsafe = {
+        ...valid,
+        quoteId: 'unsafe-route',
+        toToken: { ...valid.toToken, isHoneyPot: true },
+      };
+      const client = new BinanceClient(
+        { key: 'key', secret: 'secret' },
+        vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: 0, data: [unsafe, valid] }))),
+      );
+      const representation = (await new DemoAdapter().discover('NVDA'))[0];
+      representation.tokenAddress = valid.toToken.tokenContractAddress;
+      const quotes = await new LiveAdapter(client).quotes(
+        policySchema.parse({ ticker: 'NVDA', amount: '10' }),
+        representation,
+        '0x3333333333333333333333333333333333333333',
+      );
+      expect(quotes.map((quote) => quote.id)).toEqual(['fixture-quote']);
+    } finally {
+      if (previousUsdt === undefined) delete process.env.ATLAS_USDT_ADDRESS;
+      else process.env.ATLAS_USDT_ADDRESS = previousUsdt;
+    }
   });
   it('checks simulated output and forbids unrelated drains or allowance changes', async () => {
     const demo = new DemoAdapter(),

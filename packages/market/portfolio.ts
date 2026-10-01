@@ -14,6 +14,7 @@ export function summarizePortfolio(
         ...a,
         ticker: r.ticker,
         provider: r.provider,
+        sharesPerToken: r.sharesPerToken,
         underlyingShares: new Decimal(a.balance).mul(r.sharesPerToken).toFixed(),
         valueUsd: new Decimal(a.balance).mul(a.tokenPrice).toFixed(),
       },

@@ -1,5 +1,5 @@
 import { pgTable, text, jsonb, timestamp } from 'drizzle-orm/pg-core';
-import type { Receipt, TradeIntent, Evaluation, Representation, Transaction } from '../core/domain';
+import type { Receipt, TradeIntent, Evaluation, Representation, Transaction, ApprovalEvidence, Policy } from '../core/domain';
 export const intents = pgTable('intents', {
   id: text().primaryKey(),
   owner: text().notNull(),
@@ -35,5 +35,14 @@ export const executions = pgTable('executions', {
 export const telemetry = pgTable('api_telemetry', {
   id: text().primaryKey(),
   payload: jsonb().notNull(),
+  createdAt: timestamp().defaultNow().notNull(),
+});
+export const approvals = pgTable('token_approvals', {
+  id: text().primaryKey(), owner: text().notNull(),
+  payload: jsonb().$type<{ evidence: ApprovalEvidence; policy: Policy; receiptId: string }>().notNull(),
+  createdAt: timestamp().defaultNow().notNull(),
+});
+export const holds = pgTable('execution_holds', {
+  wallet: text().primaryKey(), reason: text().notNull(), transactionHash: text().notNull(),
   createdAt: timestamp().defaultNow().notNull(),
 });

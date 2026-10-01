@@ -4,6 +4,7 @@ import { z } from 'zod';
  * Studio verifies the funded ERC-8183 job and owns submission/signing. This hook cannot trade.
  */
 export async function runWork(prompt: string, _opts: { sessionId: string }): Promise<string> {
+  if (Buffer.byteLength(prompt) > 12000) throw new Error('Studio policy exceeds 12 KB.');
   const policy = policySchema.parse(JSON.parse(prompt));
   if (policy.executionMode === 'live')
     throw new Error('Intelligence-only agent: live execution prohibited.');
@@ -34,5 +35,7 @@ export async function runWork(prompt: string, _opts: { sessionId: string }): Pro
     })
     .passthrough()
     .parse(await response.json());
+  if (report.intent.side !== policy.side || report.intent.amount !== policy.amount || report.intent.executionMode !== policy.executionMode)
+    throw new Error('ATLAS report policy does not match the requested deliverable.');
   return JSON.stringify(report);
 }

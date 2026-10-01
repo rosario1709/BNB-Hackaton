@@ -1,0 +1,9 @@
+{
+  "checkedAt": "2026-10-01T02:23:06.984Z",
+  "integration": "Binance Wallet API",
+  "result": "READ VERIFIED",
+  "chainId": 56,
+  "assetCount": 0,
+  "notice": "Public address and balances are intentionally omitted from saved evidence.",
+  "transactionsBroadcast": 0
+}

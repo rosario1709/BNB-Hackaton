@@ -47,6 +47,15 @@ it('standalone agent returns a deterministic report', async () => {
     dataMode: 'demo',
   });
 });
+it('standalone agent accepts the Studio direct-policy request', async () => {
+  const res = await fetch(`http://127.0.0.1:${port}/best-execution`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ ticker: 'NVDA', amount: '10' }),
+  });
+  expect(res.status).toBe(200);
+  expect(await res.json()).toMatchObject({ decision: 'approved', executed: false });
+});
 it('standalone agent refuses live execution', async () => {
   const res = await fetch(`http://127.0.0.1:${port}/best-execution`, {
     method: 'POST',

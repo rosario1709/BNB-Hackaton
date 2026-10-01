@@ -17,11 +17,13 @@ No Vercel account, project, token, or Git remote was supplied to this workspace.
 
 Provision PostgreSQL 14+ with TLS and a dedicated app role. Set `DATABASE_URL` on the server and your migration shell. The adapter uses a pool of five connections and disables prepared statements for pooler compatibility.
 
+For local development, `compose.yaml` provides PostgreSQL 16 on `127.0.0.1:55432` with a persistent Docker volume. Put a generated password in the ignored `.env.db` as `POSTGRES_PASSWORD=...`, then set `DATABASE_URL=postgresql://atlas:<same-password>@127.0.0.1:55432/atlas` in the ignored `.env.local`. Start it with `docker compose up -d postgres` and apply the migration below. This workspace's local instance was configured and migrated on 2026-09-30.
+
 ```sh
 pnpm db:migrate
 ```
 
-The migration is transactional and idempotent. It creates intents, cached representations, route evaluations, immutable receipt snapshots, execution claims, and telemetry. Do not expose the connection URL to the browser. Keep backups and establish retention appropriate to your deployment. The migration and database adapter are implemented but were not tested against a provisioned PostgreSQL server in this environment.
+The migration is transactional and idempotent. It creates intents, cached representations, route evaluations, immutable receipt snapshots, execution claims, and telemetry. Do not expose the connection URL to the browser. Keep backups and establish retention appropriate to your deployment. The migration and database adapter were validated against a disposable PostgreSQL 16 container on 2026-09-30, including receipt owner isolation and duplicate execution-claim rejection. A managed production database remains unconfigured.
 
 Without PostgreSQL, the app uses temporary memory scoped by browser cookies; serverless instances do not share that state. Use PostgreSQL for a stable public judge session and for all live execution.
 
@@ -35,7 +37,7 @@ Without PostgreSQL, the app uses temporary memory scoped by browser cookies; ser
 - Independent USD per-share source with verifiable timestamps.
 - Operator-verified USDT address/decimals and transaction router allowlist.
 - Correct BSC RPC chain ID 56; wallet on the same chain.
-- Tiny input-token balance and BNB for gas; existing required allowance.
+- Tiny input-token balance and BNB for gas; existing allowance or a separately confirmed exact-input approval followed by a fresh evaluation.
 - PostgreSQL migrations applied; receipt and execution-claim durability checked.
 - Fresh SWAP quote, exact simulation, all policy checks, and explicit user confirmation.
 - First real transaction verified by sender/target/value/calldata and output Transfer logs.

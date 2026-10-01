@@ -1,6 +1,7 @@
 {
   "name": "@atlas/web",
   "private": true,
+  "engines": { "node": "24.x" },
   "scripts": {
     "dev": "next dev",
     "build": "next build",

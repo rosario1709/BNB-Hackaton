@@ -51,6 +51,16 @@ describe('Router and deterministic risk', () => {
     expect((await evaluateRoutes(intent(), new DemoAdapter('simulation-failure'))).decision).toBe(
       'blocked',
     ));
+  it('rejects halted status regardless of capitalization', async () => {
+    const report = await evaluateRoutes(intent(), new DemoAdapter());
+    const selected = report.candidates.find(
+      (candidate) => candidate.id === report.selectedRouteId,
+    )!;
+    selected.representation.status = 'HALTED';
+    expect(
+      checkRoute(report.intent, selected).find((check) => check.code === 'TRADABLE')?.status,
+    ).toBe('fail');
+  });
   it('quote mode never simulates', async () => {
     const a = new DemoAdapter();
     a.simulate = () => {
@@ -115,6 +125,8 @@ describe('Router and deterministic risk', () => {
     'impact',
     'halt',
     'missing-reference',
+    'public-reference',
+    'stale-onchain',
     'future-reference',
     'simulation',
     'expired-quote',
@@ -130,6 +142,8 @@ describe('Router and deterministic risk', () => {
       e.representation.tradable = false;
     }
     if (failure === 'missing-reference') e.market.referencePrice = undefined;
+    if (failure === 'public-reference') e.market.referenceIndependent = false;
+    if (failure === 'stale-onchain') e.market.onchainTimestamp = new Date(Date.now() - 121000).toISOString();
     if (failure === 'future-reference')
       e.market.referenceTimestamp = new Date(Date.now() + 60000).toISOString();
     if (failure === 'simulation') e.simulation!.success = false;

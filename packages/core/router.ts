@@ -42,8 +42,11 @@ export async function evaluateRoutes(
         try {
           base.market = await adapter.market(r);
           const quotes = await adapter.quotes(intent, r, wallet);
-          if (!quotes.length) throw new Error('No liquidity: no executable quote returned.');
-          const evaluated: Evaluation[] = [];
+          const evaluated: Evaluation[] = (adapter.quoteFailures?.(r) ?? []).map((failure) => ({
+            ...base, id: crypto.randomUUID(), checks: [{ code: 'QUOTE', label: failure.vendor, status: 'fail', explanation: failure.reason }],
+            rejectionReasons: [`${failure.vendor}: ${failure.reason}`], durationMs: Math.round(performance.now() - begin),
+          }));
+          if (!quotes.length && !evaluated.length) throw new Error('No liquidity: no executable quote returned.');
           for (const q of quotes) {
             const e: Evaluation = { ...base, id: crypto.randomUUID(), quote: q };
             const shares = new Decimal(q.expectedAmountOut).mul(r.sharesPerToken);
@@ -58,6 +61,7 @@ export async function evaluateRoutes(
                   .minus(new Decimal(q.gasUsd).div(e.market.referencePrice))
                   .toFixed();
             } else {
+              e.grossShares = new Decimal(intent.amount).mul(r.sharesPerToken).toFixed();
               e.executionPrice = new Decimal(q.expectedAmountOut)
                 .mul(q.outputPriceUsd)
                 .div(new Decimal(intent.amount).mul(r.sharesPerToken))

@@ -168,6 +168,7 @@ export class PublicMarketAdapter extends LiveAdapter {
         .toFixed(),
       referencePrice: data.stockInfo.price ?? undefined,
       referenceSource: 'Binance Wallet Skill stock feed (source timestamp unavailable)',
+      referenceIndependent: false,
       marketStatus: r.status,
       observedAt: new Date().toISOString(),
     };

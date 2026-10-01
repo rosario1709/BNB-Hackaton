@@ -2,7 +2,7 @@ import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { and, eq, desc } from 'drizzle-orm';
 import * as tables from './schema';
-import type { Receipt, Transaction } from '../core/domain';
+import type { Receipt, Transaction, ApprovalEvidence, Policy } from '../core/domain';
 import { observations } from '../telemetry';
 const shared = globalThis as typeof globalThis & {
   atlasReceipts?: Map<string, { owner: string; receipt: Receipt }>;
@@ -110,4 +110,29 @@ export async function databaseHealth() {
   if (!process.env.DATABASE_URL) return 'Temporary memory (resets on restart; local use only)';
   await db().select().from(tables.receipts).limit(1);
   return 'PostgreSQL connected';
+}
+export async function saveApproval(owner: string, evidence: ApprovalEvidence, policy: Policy, receiptId: string) {
+  if (!process.env.DATABASE_URL) throw new Error('PostgreSQL is required for approval evidence.');
+  await db().insert(tables.approvals).values({ id: evidence.id, owner, payload: { evidence, policy, receiptId } });
+}
+export async function getApproval(owner: string, id: string) {
+  if (!process.env.DATABASE_URL) return;
+  return (await db().select().from(tables.approvals).where(and(eq(tables.approvals.id, id), eq(tables.approvals.owner, owner))).limit(1))[0]?.payload;
+}
+export async function updateApproval(owner: string, evidence: ApprovalEvidence) {
+  const previous = await getApproval(owner, evidence.id);
+  if (!previous) throw new Error('Approval not found in this browser session.');
+  if (previous.evidence.transactionHash && previous.evidence.transactionHash !== evidence.transactionHash)
+    throw new Error('Approval is already bound to a different transaction hash.');
+  await db().update(tables.approvals).set({ payload: { ...previous, evidence } })
+    .where(and(eq(tables.approvals.id, evidence.id), eq(tables.approvals.owner, owner)));
+}
+export async function holdExecution(wallet: string, reason: string, transactionHash: string) {
+  if (!process.env.DATABASE_URL) throw new Error('PostgreSQL is required for execution review holds.');
+  await db().insert(tables.holds).values({ wallet: wallet.toLowerCase(), reason, transactionHash }).onConflictDoNothing();
+}
+export async function assertNoExecutionHold(wallet: string) {
+  if (!process.env.DATABASE_URL) throw new Error('Durable PostgreSQL persistence is required for live execution.');
+  const hold = (await db().select().from(tables.holds).where(eq(tables.holds.wallet, wallet.toLowerCase())).limit(1))[0];
+  if (hold) throw new Error('EXECUTION_REVIEW_REQUIRED: a previous transaction reverted or had mismatched flows. Operator review is required before another preparation.');
 }

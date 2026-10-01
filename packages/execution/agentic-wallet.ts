@@ -20,7 +20,7 @@ export class AgenticWallet {
       isJs ? process.execPath : executable,
       [...(isJs ? [executable] : []), ...args, '--json'],
       { timeout: 30000, maxBuffer: 2 * 1024 * 1024, windowsHide: true, shell: false },
-    );
+    ).catch(() => { throw new Error('Agentic Wallet CLI could not complete the command. Verify the official installation, absolute ATLAS_BAW_EXECUTABLE path and Binance sign-in; run pnpm wallet status. On Windows use the installed JavaScript entrypoint, not a shell wrapper.'); });
     const envelope = z
       .object({ success: z.boolean(), data: z.unknown().optional() })
       .parse(JSON.parse(stdout));
